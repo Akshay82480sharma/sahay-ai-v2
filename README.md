@@ -256,8 +256,8 @@ Built for **Bit N Build'26 — Gujarat Round** (Problem Statement PS-9).
 
 | Name | Role | GitHub |
 |---|---|---|
-| *Your Name* | Backend & AI | [@handle](https://github.com/handle) |
-| *Your Name* | Frontend & Dashboard | [@handle](https://github.com/handle) |
+| *Rudrarajsinh Rana* | Backend & AI | (https://github.com/Ru-2008 |
+| *Your Name* | Frontend & Dashboard | (https://github.com/Akshay82480sharma) |
 
 ---
 
