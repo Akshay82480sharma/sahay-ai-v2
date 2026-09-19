@@ -7,7 +7,9 @@ from app.models.report import Report
 from app.models.incident import Incident
 from app.services.classifier import classify
 from app.services.events import broadcast_nowait
+from app.utils.geo import haversine_km
 from pydantic import BaseModel
+from datetime import datetime, timezone
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,8 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 class ReportCreateResponse(BaseModel):
     report: ReportResponse
     incident: IncidentListResponse
+
+MERGE_RADIUS_KM = 2.0
 
 @router.post("", response_model=ReportCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
@@ -27,29 +31,53 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Classification failed")
         
     if classification.get("is_likely_false"):
-        # If it's fake, we could just save the report without an incident
-        # But for the thin slice, let's just make an incident anyway, or skip it.
-        # Spec doesn't say. Let's create an incident with status 'resolved' maybe?
-        # Actually, let's just create the incident normally for now to ensure flow works,
-        # or maybe raise 400? Let's just create it.
         pass
 
-    # 2. Create Incident
-    incident = Incident(
-        type=classification["type"],
-        severity=classification["severity"],
-        priority=classification.get("priority", "low"),
-        status="new",
-        lat=report_in.lat,
-        lng=report_in.lng,
-        location_name=classification.get("location_name") or report_in.location_name,
-        summary=classification["summary"],
-        confidence=1.0,
-        report_count=1,
-        required_resources=classification.get("required_resources", [])
-    )
-    db.add(incident)
-    db.flush() # Get incident.id
+    # 2. Deduplication check
+    # Find all active incidents of the same type
+    active_incidents = db.query(Incident).filter(
+        Incident.status != "resolved",
+        Incident.type == classification["type"]
+    ).all()
+    
+    matched_incident = None
+    if report_in.lat is not None and report_in.lng is not None:
+        for inc in active_incidents:
+            if inc.lat is not None and inc.lng is not None:
+                dist = haversine_km(report_in.lat, report_in.lng, inc.lat, inc.lng)
+                if dist <= MERGE_RADIUS_KM:
+                    matched_incident = inc
+                    break
+
+    if matched_incident:
+        # Merge with existing incident
+        matched_incident.report_count += 1
+        matched_incident.confidence = min(1.0, matched_incident.confidence + 0.15)
+        if classification["severity"] > matched_incident.severity:
+            matched_incident.severity = classification["severity"]
+        
+        # Optionally append to summary if it's getting more critical, but for now just update timestamp
+        matched_incident.updated_at = datetime.now(timezone.utc)
+        incident = matched_incident
+        is_new = False
+    else:
+        # Create new Incident
+        incident = Incident(
+            type=classification["type"],
+            severity=classification["severity"],
+            priority=classification.get("priority", "low"),
+            status="new",
+            lat=report_in.lat,
+            lng=report_in.lng,
+            location_name=classification.get("location_name") or report_in.location_name,
+            summary=classification["summary"],
+            confidence=0.6, # Start lower since it's only 1 report
+            report_count=1,
+            required_resources=classification.get("required_resources", [])
+        )
+        db.add(incident)
+        db.flush() # Get incident.id
+        is_new = True
     
     # 3. Create Report
     report = Report(
@@ -67,6 +95,9 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     
     # 4. Broadcast event
     incident_dict = IncidentListResponse.model_validate(incident).model_dump(mode='json')
-    broadcast_nowait("incident_created", incident_dict)
+    if is_new:
+        broadcast_nowait("incident_created", incident_dict)
+    else:
+        broadcast_nowait("incident_updated", incident_dict)
     
     return {"report": report, "incident": incident}

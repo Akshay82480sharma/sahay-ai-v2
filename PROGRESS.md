@@ -21,15 +21,16 @@
 | 2026-09-19 16:15 IST | Rudrarajsinh | Completed Task 6 (Scenario Simulator) | Task 4 (Alerts) | — |
 | 2026-09-19 16:20 IST | Rudrarajsinh | Completed Task 4 (Alerts) | Task 5 (Analytics) | — |
 | 2026-09-19 16:23 IST | Rudrarajsinh | Completed Task 5 (Analytics) | Post-Task 5 | — |
+| 2026-09-19 16:35 IST | Akshay | Completed Phase A3 (Deduplication) | Phase 4 (Polish) | — |
 
 ---
 
 ## Phase Checklist
 
-- [ ] **Phase 0** — Repository setup, API contract, environment configuration
-- [ ] **Phase 1** — Thin end-to-end slice (report → classify → display on dashboard)
-- [ ] **Phase 2** — Duplicate detection, resource recommendation, dispatch with approval
-- [ ] **Phase 3** — Alerts, escalation, analytics, scenario simulator
+- [x] **Phase 0** — Repository setup, API contract, environment configuration
+- [x] **Phase 1** — Thin end-to-end slice (report -> classify -> display on dashboard)
+- [x] **Phase 2** — Duplicate detection, resource recommendation, dispatch with approval
+- [x] **Phase 3** — Alerts, escalation, analytics, scenario simulator
 - [ ] **Phase 4** — Polish, README update, demo video, presentation (PPT)
 
 ---
