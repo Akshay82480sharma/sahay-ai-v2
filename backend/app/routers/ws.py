@@ -6,6 +6,7 @@ messages of the form ``{"event": "...", "data": {...}}``.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
@@ -25,6 +26,7 @@ async def websocket_live(websocket: WebSocket) -> None:
     Any incoming messages are silently ignored.
     """
     await manager.connect(websocket)
+    manager.loop = asyncio.get_running_loop()
     try:
         while True:
             # Keep the connection alive — wait for client messages

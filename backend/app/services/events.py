@@ -88,7 +88,8 @@ def broadcast_nowait(event: str, data: dict[str, Any]) -> None:
 
     Safe to call from anywhere:
     - If there is a running event loop, the broadcast is scheduled as a task.
-    - If there is no running loop or no clients, it silently does nothing.
+    - If there is no running loop, it schedules it on the manager's loop safely.
+    - If there is no loop or no clients, it silently does nothing.
     - Never raises.
     """
     if manager.client_count == 0:
@@ -97,8 +98,9 @@ def broadcast_nowait(event: str, data: dict[str, Any]) -> None:
         loop = asyncio.get_running_loop()
         loop.create_task(_safe_broadcast(event, data))
     except RuntimeError:
-        # No running event loop — nothing to do.
-        pass
+        # No running event loop in this thread
+        if hasattr(manager, "loop") and manager.loop and manager.loop.is_running():
+            asyncio.run_coroutine_threadsafe(_safe_broadcast(event, data), manager.loop)
     except Exception:
         logger.exception("broadcast_nowait() scheduling failed for event=%s", event)
 
