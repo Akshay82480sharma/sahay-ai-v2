@@ -45,7 +45,7 @@ export default function Analytics() {
   const {
     total_incidents = 0,
     avg_response_seconds = 0,
-    resource_shortages = 0,
+    resource_shortages = [],
     incidents_by_type = {},
     status_counts = {},
     hotspots = []
@@ -73,8 +73,8 @@ export default function Analytics() {
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-center items-center">
           <span className="text-sm font-medium text-gray-500 mb-1">Resource Shortages</span>
-          <span className={`text-4xl font-bold ${resource_shortages > 0 ? 'text-purple-600' : 'text-green-600'}`}>
-            {resource_shortages}
+          <span className={`text-4xl font-bold ${resource_shortages.length > 0 ? 'text-purple-600' : 'text-green-600'}`}>
+            {resource_shortages.length}
           </span>
         </div>
       </div>
