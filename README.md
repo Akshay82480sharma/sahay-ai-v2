@@ -6,7 +6,7 @@
 
 *Sahay (સહાય / सहाय) means "help" in Gujarati and Hindi*
 
-[![Status](https://img.shields.io/badge/status-in%20development-yellow)]()
+[![Status](https://img.shields.io/badge/status-completed-success)]()
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![Bit N Build'26](https://img.shields.io/badge/hackathon-Bit%20N%20Build'26-blueviolet)]()
 [![PS-9](https://img.shields.io/badge/problem-PS--9-blue)]()
@@ -15,8 +15,7 @@
 
 ---
 
-> **Status:** 🚧 Under active development for Bit N Build'26 Gujarat Round (PS-9).
-> Features listed below are planned — checkboxes will be ticked as each is completed.
+> **Status:** 🚀 Completed for Bit N Build'26 Gujarat Round (PS-9).
 
 ---
 
@@ -50,18 +49,16 @@ Sahay AI is a **command-centre platform** that:
 
 ## ✅ Key Features
 
-<!-- Tick boxes as features are completed -->
-
-- [ ] **Multi-source incident collection** — citizen reports, emergency calls, sensor data, field team updates
-- [ ] **AI classification & severity** — automatic incident type, severity (1–5), and priority assignment
-- [ ] **Duplicate detection & consolidation** — merge related reports into single incidents with confidence scoring
-- [ ] **Resource recommendation** — AI suggests teams and equipment with reasoning; mutual-aid flag when local resources are short
-- [ ] **Real-time command dashboard** — active emergencies, severity indicators, assigned teams, response status, live map
-- [ ] **Alerts & escalation** — critical-unassigned, delayed-response, and no-update alerts with configurable thresholds
-- [ ] **AI-generated summaries & recommendations** — natural-language incident summaries and dispatch explanations
-- [ ] **Analytics** — emergency types, response delays, resource shortages, frequently affected areas (hotspot map)
-- [ ] **Notifications** — mock SMS log (Twilio integration optional)
-- [ ] **Scenario simulator** — one-click flood, factory fire, and road accident simulations for demo and testing
+- [x] **Multi-source incident collection** — citizen reports, emergency calls, sensor data, field team updates
+- [x] **AI classification & severity** — automatic incident type, severity (1–5), and priority assignment
+- [x] **Duplicate detection & consolidation** — merge related reports into single incidents with confidence scoring
+- [x] **Resource recommendation** — AI suggests teams and equipment with reasoning; mutual-aid flag when local resources are short
+- [x] **Real-time command dashboard** — active emergencies, severity indicators, assigned teams, response status, live map
+- [x] **Alerts & escalation** — critical-unassigned, delayed-response, and no-update alerts with configurable thresholds
+- [x] **AI-generated summaries & recommendations** — natural-language incident summaries and dispatch explanations
+- [x] **Analytics** — emergency types, response delays, resource shortages, frequently affected areas (hotspot map)
+- [x] **Notifications** — mock SMS log (Twilio integration optional)
+- [x] **Scenario simulator** — one-click flood, factory fire, and road accident simulations for demo and testing
 
 ---
 
