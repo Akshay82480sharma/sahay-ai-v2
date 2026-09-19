@@ -1,0 +1,5 @@
+[
+  { "delay_seconds": 1, "source": "call", "text": "Huge blast and fire at GIDC Makarpura", "location_name": "GIDC Makarpura", "lat": 22.2478, "lng": 73.1917 },
+  { "delay_seconds": 2, "source": "citizen", "text": "મકરપુરા જીઆઈડીસીમાં આગ લાગી છે", "location_name": "GIDC Makarpura", "lat": 22.2480, "lng": 73.1920 },
+  { "delay_seconds": 4, "source": "sensor", "text": "Heat and smoke detected at industrial estate", "location_name": "GIDC Makarpura", "lat": 22.2478, "lng": 73.1917 }
+]

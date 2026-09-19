@@ -1,0 +1,4 @@
+[
+  { "delay_seconds": 1, "source": "citizen", "text": "Bus and car collided near Railway Station", "location_name": "Railway Station", "lat": 22.3100, "lng": 73.1812 },
+  { "delay_seconds": 3, "source": "call", "text": "રેલવે સ્ટેશન પાસે મોટો અકસ્માત", "location_name": "Railway Station", "lat": 22.3102, "lng": 73.1815 }
+]
