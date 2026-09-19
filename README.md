@@ -144,7 +144,7 @@ flowchart LR
 
 ```
 sahay-ai/
-├── backend/                # Python + FastAPI  (planned)
+├── backend/                # Python + FastAPI
 │   ├── app/
 │   │   ├── main.py         # FastAPI app entry point
 │   │   ├── models/         # SQLAlchemy models
@@ -154,7 +154,7 @@ sahay-ai/
 │   │   └── core/           # Config, database, dependencies
 │   ├── requirements.txt
 │   └── tests/
-├── frontend/               # React + Vite  (planned)
+├── frontend/               # React + Vite
 │   ├── src/
 │   │   ├── components/     # React components
 │   │   ├── pages/          # Dashboard, Analytics, etc.
@@ -172,8 +172,6 @@ sahay-ai/
 ├── README.md               # ← You are here
 └── LICENSE                 # MIT
 ```
-
-> Folders marked *(planned)* will be pushed by their respective owners.
 
 ---
 
@@ -195,8 +193,6 @@ cp .env.example .env
 
 ### 2. Backend
 
-> ⚠️ These steps become valid once the `/backend` folder is pushed.
-
 ```bash
 cd backend
 python -m venv venv
@@ -214,8 +210,6 @@ uvicorn app.main:app --reload
 - Health check: [http://localhost:8000/health](http://localhost:8000/health)
 
 ### 3. Frontend
-
-> ⚠️ These steps become valid once the `/frontend` folder is pushed.
 
 ```bash
 cd frontend
