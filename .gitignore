@@ -1,0 +1,50 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+venv/
+.venv/
+*.egg-info/
+*.egg
+.pytest_cache/
+htmlcov/
+
+# ===== Node / Frontend =====
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# ===== Environment & Secrets =====
+.env
+.env.*
+!.env.example
+
+# ===== Databases =====
+*.db
+*.sqlite3
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== IDEs & Editors =====
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ===== Logs =====
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== AI / Agent Folders =====
+.antigravity/
+.claude/
+.cursor/
+.aider*
