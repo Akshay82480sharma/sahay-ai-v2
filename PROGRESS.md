@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | 2026-09-19 09:45 IST | Setup | Repository initialised — root docs, .gitignore, .env.example, LICENSE, README, CLAUDE.md, AGENTS.md, API_SPEC.md | Backend and frontend scaffolding | — |
 | 2026-09-19 10:17 IST | Akshay | Pushed empty backend/ and frontend/ skeleton (143 files) | Implement Phase 1 backend (FastAPI app + /health), Akshay implements frontend shell | — |
-| 2026-09-19 11:05 IST | Akshay | Completed Phase A0 (Backend Shared Base) | Phase A1 (Classifier) | Waiting for B to finish B1 |
+| 2026-09-19 11:05 IST | Akshay | Completed Phase A0 (Backend Shared Base) | Phase A1 (Classifier) | — |
 | 2026-09-19 11:15 IST | Rudrarajsinh | Completed Phase B0 (Geo utils, Vadodara places) | Phase B1 (WebSocket events) | — |
 | 2026-09-19 11:55 IST | Rudrarajsinh | Completed Phase B1 & B2 (Seed data, dispatcher, assignments, resources) | Phase B3 (Frontend response layer) | — |
 | 2026-09-19 11:31 IST | Akshay | Completed Phase A1 (Classifier Fallback & Mock) | Phase A2 (Backend Thin Slice) | — |
