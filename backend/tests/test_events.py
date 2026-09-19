@@ -1,7 +1,7 @@
 import asyncio
 import math
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from app.utils.geo import haversine_km, estimate_eta_seconds, EARTH_RADIUS_KM
 from app.services.events import manager, broadcast, broadcast_nowait
@@ -45,11 +45,13 @@ def test_estimate_eta_seconds():
 async def test_broadcast(caplog):
     # Setup mock websockets
     ws1 = MagicMock()
-    ws1.send_text = asyncio.AsyncMock()
+    ws1.send_text = AsyncMock()
+    ws1.accept = AsyncMock()
     
     ws2 = MagicMock()
     # Simulate a disconnected client that throws an error when sent to
-    ws2.send_text = asyncio.AsyncMock(side_effect=RuntimeError("Disconnected"))
+    ws2.send_text = AsyncMock(side_effect=RuntimeError("Disconnected"))
+    ws2.accept = AsyncMock()
 
     # Connect them to the manager
     await manager.connect(ws1)
@@ -93,8 +95,7 @@ async def test_websocket_endpoint(client):
         
         # We need to use the async broadcast function directly here because TestClient 
         # blocks the async loop, making broadcast_nowait not actually fire its task
-        import asyncio
-        asyncio.get_event_loop().run_until_complete(broadcast("test_event", {"hello": "world"}))
+        await broadcast("test_event", {"hello": "world"})
         
         # Receive the message
         data = websocket.receive_json()
