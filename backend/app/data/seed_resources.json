@@ -1,0 +1,20 @@
+[
+  { "id": 1, "name": "Ambulance AMB-01", "type": "ambulance", "status": "available", "lat": 22.3023, "lng": 73.1925, "station": "SSG Hospital EMS", "capacity": 2 },
+  { "id": 2, "name": "Ambulance AMB-02", "type": "ambulance", "status": "available", "lat": 22.3168, "lng": 73.1491, "station": "Gotri Medical EMS", "capacity": 2 },
+  { "id": 3, "name": "Ambulance AMB-03", "type": "ambulance", "status": "busy", "lat": 22.2891, "lng": 73.2039, "station": "Pratapnagar EMS", "capacity": 2 },
+  { "id": 4, "name": "Ambulance AMB-04", "type": "ambulance", "status": "available", "lat": 22.3392, "lng": 73.2185, "station": "Harni Station", "capacity": 2 },
+  
+  { "id": 5, "name": "Fire Engine FE-01", "type": "fire_engine", "status": "available", "lat": 22.2965, "lng": 73.1979, "station": "Khanderao Market Fire Station", "capacity": 6 },
+  { "id": 6, "name": "Fire Engine FE-02", "type": "fire_engine", "status": "available", "lat": 22.2478, "lng": 73.1917, "station": "GIDC Makarpura Fire Station", "capacity": 6 },
+  { "id": 7, "name": "Fire Engine FE-03", "type": "fire_engine", "status": "dispatched", "lat": 22.3255, "lng": 73.2033, "station": "Karelibaug Fire Station", "capacity": 6 },
+  { "id": 8, "name": "Fire Engine FE-04", "type": "fire_engine", "status": "available", "lat": 22.3101, "lng": 73.1852, "station": "Sayajigunj Fire Station", "capacity": 6 },
+  
+  { "id": 9, "name": "Police Patrol P-01", "type": "police", "status": "available", "lat": 22.3040, "lng": 73.1666, "station": "Alkapuri Police Station", "capacity": 4 },
+  { "id": 10, "name": "Police Patrol P-02", "type": "police", "status": "available", "lat": 22.3193, "lng": 73.1892, "station": "Fatehgunj Police Station", "capacity": 4 },
+  { "id": 11, "name": "Police Patrol P-03", "type": "police", "status": "available", "lat": 22.2789, "lng": 73.1904, "station": "Manjalpur Police Station", "capacity": 4 },
+  { "id": 12, "name": "Police Patrol P-04", "type": "police", "status": "busy", "lat": 22.3015, "lng": 73.1610, "station": "Akota Police Station", "capacity": 4 },
+  
+  { "id": 13, "name": "Rescue Boat RB-01", "type": "rescue_boat", "status": "available", "lat": 22.3015, "lng": 73.2014, "station": "Sursagar Rescue Depot", "capacity": 8 },
+  { "id": 14, "name": "Rescue Boat RB-02", "type": "rescue_boat", "status": "available", "lat": 22.3175, "lng": 73.2270, "station": "Ajwa Road Depot", "capacity": 8 },
+  { "id": 15, "name": "Rescue Boat RB-03", "type": "rescue_boat", "status": "available", "lat": 22.2858, "lng": 73.1541, "station": "Atladara Rescue Station", "capacity": 8 }
+]

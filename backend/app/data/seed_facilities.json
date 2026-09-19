@@ -1,0 +1,8 @@
+[
+  { "id": 1, "name": "SSG Hospital", "type": "hospital", "lat": 22.3023, "lng": 73.1925, "capacity": 500, "available_beds": 42 },
+  { "id": 2, "name": "Gotri Medical College", "type": "hospital", "lat": 22.3168, "lng": 73.1491, "capacity": 300, "available_beds": 15 },
+  { "id": 3, "name": "Bhailal Amin General Hospital", "type": "hospital", "lat": 22.3218, "lng": 73.1627, "capacity": 250, "available_beds": 8 },
+  { "id": 4, "name": "Akota Community Shelter", "type": "shelter", "lat": 22.3050, "lng": 73.1780, "capacity": 200, "available_beds": 180 },
+  { "id": 5, "name": "Fatehgunj Relief Camp", "type": "shelter", "lat": 22.3180, "lng": 73.1900, "capacity": 150, "available_beds": 50 },
+  { "id": 6, "name": "Makarpura Evacuation Center", "type": "shelter", "lat": 22.2600, "lng": 73.1950, "capacity": 300, "available_beds": 290 }
+]
