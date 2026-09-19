@@ -9,6 +9,7 @@
 | Date/Time | Who | Done | Next | Blocked |
 |---|---|---|---|---|
 | 2026-09-19 09:45 IST | Setup | Repository initialised — root docs, .gitignore, .env.example, LICENSE, README, CLAUDE.md, AGENTS.md, API_SPEC.md | Backend and frontend scaffolding | — |
+| 2026-09-19 10:17 IST | Rudrarajsinh | Pushed empty backend/ and frontend/ skeleton (143 files) | Implement Phase 1 backend (FastAPI app + /health), Akshay implements frontend shell | — |
 
 ---
 
