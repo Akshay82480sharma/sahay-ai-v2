@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.errors import register_exception_handlers
-from app.routers import health
+from app.routers import health, ws
 import app.models  # Ensures models are registered before create_all
 
 # Create tables
@@ -22,3 +22,4 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(health.router)
+app.include_router(ws.router)
