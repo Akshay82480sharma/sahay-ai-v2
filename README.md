@@ -255,13 +255,15 @@ Built for **Bit N Build'26 — Gujarat Round** (Problem Statement PS-9).
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Phase Breakdown
 
-- **Phase 0** — Repository setup, API contract, environment configuration
-- **Phase 1** — Thin end-to-end slice (report → classify → display on dashboard)
-- **Phase 2** — Duplicate detection, resource recommendation, dispatch with approval
-- **Phase 3** — Alerts, escalation, analytics, scenario simulator
-- **Phase 4** — Polish, README, demo video, presentation
+The project was built concurrently by two developers (Person A & Person B) across 8 parallel phases:
+
+- **Phase 0 (A0/B0)** — Repository setup, API contract, shared base models, and Geocoding setup.
+- **Phase 1 (A1/A2 & B1)** — Thin slice backend (Report ingestion -> AI Classification) and WebSocket real-time wiring.
+- **Phase 2 (A3/A4 & B2/B3/B4)** — React Frontend base, Incident Map/List, and Dispatch routing with human approval.
+- **Phase 3 (A5 & B5/B6)** — Spatial deduplication engine, Scenario Simulator, automated Alerts, and Analytics.
+- **Phase 4 (A6/A7 & B7)** — Real Gemini LLM integration, final polish, joint integration tests, and demo presentation.
 
 ---
 
