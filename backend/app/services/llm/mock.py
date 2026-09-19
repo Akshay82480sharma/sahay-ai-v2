@@ -14,7 +14,7 @@ class MockProvider(LLMProvider):
             "type": incident_type,
             "severity": severity,
             "priority": "critical" if severity >= 4 else "high" if severity == 3 else "medium" if severity == 2 else "low",
-            "location_name": "Mock Location",
+            "location_name": None,
             "summary": f"Mock summary for: {text[:30]}...",
             "required_resources": [{"type": "ambulance", "count": 1}] if severity > 2 else [],
             "language": lang,
