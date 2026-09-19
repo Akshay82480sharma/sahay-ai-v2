@@ -21,8 +21,8 @@
 | 2026-09-19 16:15 IST | Rudrarajsinh | Completed Phase B5 (Scenario Simulator) | Phase B6 (Alerts) | — |
 | 2026-09-19 16:20 IST | Rudrarajsinh | Completed Phase B6 (Alerts) | Phase B6 (Analytics) | — |
 | 2026-09-19 16:23 IST | Rudrarajsinh | Completed Phase B6 (Analytics) | Phase B7 (Integration) | — |
-| 2026-09-19 16:35 IST | Akshay | Completed Phase A5 (Deduplication) | Phase A6 | — |
-| 2026-09-19 16:40 IST | Akshay | Completed Phase A6 (Real LLM provider) | Phase A7 | — |
+| 2026-09-19 16:35 IST | Akshay | Completed Phase A5 (Deduplication) | Phase A6 (Real LLM provider) | — |
+| 2026-09-19 16:40 IST | Akshay | Completed Phase A6 (Real LLM provider) | Phase A7 (Polish and Docs) | — |
 | 2026-09-19 16:43 IST | Akshay | Completed Phase A7 (Polish and Docs) | Done | — |
 | 2026-09-19 16:51 IST | Akshay | Completed Phase A3 (Frontend Base & Shell) | Phase A4 (Map/List) | — |
 | 2026-09-19 17:05 IST | Akshay | Completed Phase A4 (Incident UI, Map, Intake) | Done | — |
