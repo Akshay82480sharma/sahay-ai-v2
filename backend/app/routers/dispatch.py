@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
@@ -11,6 +10,7 @@ from app.models.assignment import Assignment
 from app.models.enums import IncidentStatus, ResourceStatus, AssignmentStatus
 from app.services import dispatcher
 from app.services import events
+from app.utils.timeutil import utcnow, format_iso8601_z
 
 router = APIRouter(prefix="/incidents", tags=["Dispatch"])
 
@@ -33,12 +33,14 @@ def recommend_resources(id: int, db: Session = Depends(get_db)):
 
 @router.post("/{id}/assign", status_code=status.HTTP_201_CREATED)
 def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db)):
+    if not req.resource_ids:
+        raise HTTPException(status_code=422, detail="Empty resource_ids list.")
+        
     incident = db.query(Incident).filter(Incident.id == id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found.")
         
-    # We will use datetime directly since timeutil might not be there
-    now = datetime.now(timezone.utc)
+    now = utcnow()
     
     # Get recommendation to populate ETA and reasoning
     rec_result = dispatcher.recommend(db, incident)
@@ -54,7 +56,7 @@ def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db))
         if resource.status != ResourceStatus.available:
             raise HTTPException(
                 status_code=422, 
-                detail=f"Resource {r_id} is not available (current status: {resource.status})."
+                detail=f"Resource {r_id} is not available."
             )
             
         # Extract ETA/reasoning if it was in the recommendation
@@ -66,7 +68,7 @@ def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db))
         assignment = Assignment(
             incident_id=incident.id,
             resource_id=resource.id,
-            status=AssignmentStatus.dispatched,
+            status=AssignmentStatus.dispatched.value,
             eta_seconds=eta,
             dispatched_at=now,
             reasoning=reasoning
@@ -74,12 +76,12 @@ def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db))
         db.add(assignment)
         
         # Update resource status
-        resource.status = ResourceStatus.dispatched
+        resource.status = ResourceStatus.dispatched.value
         
         assignments_created.append(assignment)
         
     # Update incident status
-    incident.status = IncidentStatus.dispatched
+    incident.status = IncidentStatus.dispatched.value
     incident.updated_at = now
     
     db.commit()
@@ -93,29 +95,27 @@ def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db))
     # Emit events
     events.broadcast_nowait("incident_updated", {
         "id": incident.id,
-        "status": incident.status.value,
-        "updated_at": incident.updated_at.isoformat()
+        "status": incident.status,
+        "updated_at": format_iso8601_z(incident.updated_at)
     })
     
-    # Build response manually to match API_SPEC shape since we can't easily rely on schemas yet
-    # The user says "use broadcast_nowait if the handler is sync"
     assignment_responses = []
     for a in assignments_created:
         # Also broadcast resource update
         resource = db.query(Resource).filter(Resource.id == a.resource_id).first()
         events.broadcast_nowait("resource_updated", {
             "id": resource.id,
-            "status": resource.status.value
+            "status": resource.status
         })
         
         a_dict = {
             "id": a.id,
             "incident_id": a.incident_id,
             "resource_id": a.resource_id,
-            "status": a.status.value,
+            "status": a.status,
             "eta_seconds": a.eta_seconds,
-            "dispatched_at": a.dispatched_at.isoformat() if a.dispatched_at else None,
-            "arrived_at": a.arrived_at.isoformat() if a.arrived_at else None,
+            "dispatched_at": format_iso8601_z(a.dispatched_at) if a.dispatched_at else None,
+            "arrived_at": format_iso8601_z(a.arrived_at) if a.arrived_at else None,
             "reasoning": a.reasoning
         }
         
