@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { submitReport } from '../../api/reports';
+import { submitReport } from '../api/reports';
 
 export default function ReportIntake() {
   const [text, setText] = useState('');
