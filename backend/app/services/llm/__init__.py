@@ -20,9 +20,6 @@ def get_provider() -> LLMProvider:
     elif provider_name == "gemini":
         from .gemini import GeminiProvider
         return GeminiProvider()
-    elif provider_name == "claude":
-        from .claude import ClaudeProvider
-        return ClaudeProvider()
     else:
         # Fallback to mock if unknown
         from .mock import MockProvider

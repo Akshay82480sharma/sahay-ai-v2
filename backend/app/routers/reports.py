@@ -7,6 +7,7 @@ from app.models.report import Report
 from app.models.incident import Incident
 from app.services.classifier import classify
 from app.services.events import broadcast_nowait
+from app.services.geocode import geocode_location
 from app.utils.geo import haversine_km
 from pydantic import BaseModel
 from datetime import datetime, timezone
@@ -33,6 +34,16 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     if classification.get("is_likely_false"):
         pass
 
+    # 1.5 Geocode if lat/lng are missing
+    lat = report_in.lat
+    lng = report_in.lng
+    loc_name = classification.get("location_name") or report_in.location_name
+    
+    if (lat is None or lng is None) and loc_name:
+        coords = geocode_location(loc_name)
+        if coords:
+            lat, lng = coords
+
     # 2. Deduplication check
     # Find all active incidents of the same type
     active_incidents = db.query(Incident).filter(
@@ -41,10 +52,10 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     ).all()
     
     matched_incident = None
-    if report_in.lat is not None and report_in.lng is not None:
+    if lat is not None and lng is not None:
         for inc in active_incidents:
             if inc.lat is not None and inc.lng is not None:
-                dist = haversine_km(report_in.lat, report_in.lng, inc.lat, inc.lng)
+                dist = haversine_km(lat, lng, inc.lat, inc.lng)
                 if dist <= MERGE_RADIUS_KM:
                     matched_incident = inc
                     break
@@ -67,9 +78,9 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
             severity=classification["severity"],
             priority=classification.get("priority", "low"),
             status="new",
-            lat=report_in.lat,
-            lng=report_in.lng,
-            location_name=classification.get("location_name") or report_in.location_name,
+            lat=lat,
+            lng=lng,
+            location_name=loc_name,
             summary=classification["summary"],
             confidence=0.6, # Start lower since it's only 1 report
             report_count=1,
@@ -83,8 +94,8 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     report = Report(
         raw_text=report_in.text,
         source=report_in.source,
-        lat=report_in.lat,
-        lng=report_in.lng,
+        lat=lat,
+        lng=lng,
         language=classification.get("language"),
         incident_id=incident.id
     )
