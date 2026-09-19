@@ -18,6 +18,7 @@ export default function AppShell({ children }) {
             <nav className="flex items-center gap-4 border-l border-gray-200 pl-6 h-8">
               <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
               <Link to="/report" className={isActive('/report')}>New Report</Link>
+              <Link to="/analytics" className={isActive('/analytics')}>Analytics</Link>
             </nav>
           </div>
         </div>

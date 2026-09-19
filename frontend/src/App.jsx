@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
 import ReportIntake from './pages/ReportIntake';
+import Analytics from './pages/Analytics';
 import { LiveDataProvider } from './context/LiveDataProvider';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/report" element={<ReportIntake />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </AppShell>
