@@ -33,7 +33,13 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
+from fastapi.responses import RedirectResponse
+
 app = FastAPI(title="Sahay AI API", lifespan=lifespan)
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 
 app.add_middleware(
     CORSMiddleware,
