@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import LiveMap from '../components/map/LiveMap';
 import IncidentList from '../components/incidents/IncidentList';
+import ConnectionBadge from '../components/layout/ConnectionBadge';
+import AlertFeed from '../components/alerts/AlertFeed';
+import DispatchPanel from '../components/dispatch/DispatchPanel';
 
 export default function Dashboard() {
+  // TODO(Person A): Update IncidentList/LiveMap to set this state when an incident is clicked
+  const [selectedIncidentId, setSelectedIncidentId] = useState(null);
+
   return (
     <div className="flex-1 flex flex-col gap-6 h-full">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Emergency Dashboard</h2>
         <div className="flex items-center gap-2">
-          {/* ConnectionBadge will go here */}
+          <ConnectionBadge />
           <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
             Phase A4 Active
           </span>
@@ -29,12 +35,17 @@ export default function Dashboard() {
           <LiveMap />
         </div>
         
-        <div className="lg:col-span-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 bg-gray-50/50">
-            <h3 className="font-semibold text-gray-700">Dispatch Panel</h3>
+        <div className="lg:col-span-1 flex flex-col gap-6 h-full min-h-0">
+          <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0">
+            <div className="p-4 border-b border-gray-200 bg-gray-50/50">
+              <h3 className="font-semibold text-gray-700">Dispatch Panel</h3>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <DispatchPanel incidentId={selectedIncidentId} />
+            </div>
           </div>
-          <div className="flex-1 flex items-center justify-center text-gray-500 p-4 text-center">
-            [Dispatch Panel Placeholder - Phase B4]
+          <div className="flex-1 flex flex-col min-h-0">
+            <AlertFeed />
           </div>
         </div>
       </div>
