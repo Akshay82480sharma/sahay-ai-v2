@@ -29,7 +29,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         details[field] = error.get("msg", "")
         
     return JSONResponse(
-        status_code=400,
+        status_code=422,
         content={
             "error": "Validation failed",
             "details": details
