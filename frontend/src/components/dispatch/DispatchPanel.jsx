@@ -119,6 +119,29 @@ export default function DispatchPanel({ incidentId }) {
                 />
               </>
             )}
+
+            {incidentDetail?.audit_logs && incidentDetail.audit_logs.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <h4 className="font-bold text-gray-900 mb-4">Audit Trail</h4>
+                <div className="space-y-4 border-l-2 border-blue-100 ml-2 pl-4 relative">
+                  {incidentDetail.audit_logs.map(log => (
+                    <div key={log.id} className="relative">
+                      <div className="absolute -left-[21px] top-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+                      <p className="text-xs text-gray-400 mb-1">{new Date(log.timestamp).toLocaleTimeString()}</p>
+                      <p className="text-sm font-semibold text-gray-800">{log.action}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        By: {log.actor}
+                        {log.details && Object.keys(log.details).length > 0 && (
+                          <span className="block mt-1 bg-gray-50 p-2 rounded text-gray-600 font-mono text-[10px]">
+                            {JSON.stringify(log.details)}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
