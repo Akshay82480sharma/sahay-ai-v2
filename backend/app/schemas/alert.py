@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from app.schemas.common import UtcDatetime
 from app.models.enums import AlertKind
@@ -11,5 +11,4 @@ class AlertResponse(BaseModel):
     acknowledged: bool
     created_at: UtcDatetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

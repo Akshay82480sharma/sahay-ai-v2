@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Any
 from app.schemas.common import UtcDatetime
 from app.models.enums import IncidentType, IncidentPriority, IncidentStatus
@@ -27,16 +27,14 @@ class IncidentListResponse(BaseModel):
     created_at: UtcDatetime
     updated_at: UtcDatetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class IncidentDetailResponse(IncidentListResponse):
     reports: List[ReportResponse] = []
     assignments: List[AssignmentResponse] = []
     audit_logs: List[AuditLogResponse] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class IncidentPaginatedResponse(BaseModel):
     incidents: List[IncidentListResponse]

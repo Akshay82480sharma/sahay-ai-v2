@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from app.schemas.common import UtcDatetime
 from app.models.enums import AssignmentStatus
@@ -13,5 +13,4 @@ class AssignmentResponse(BaseModel):
     arrived_at: Optional[UtcDatetime] = None
     reasoning: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
