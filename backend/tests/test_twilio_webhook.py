@@ -47,17 +47,13 @@ def test_twilio_webhook_empty_body(mock_twilio_env):
     assert response.headers["content-type"] == "application/xml"
     assert "Please send your location" in response.text
 
-@pytest.mark.skip(reason="Awaiting Person A approval for create_report_from_text extract")
 def test_twilio_webhook_success(mock_twilio_env, monkeypatch):
-    # This test is skipped because create_report_from_text is not yet implemented in reports.py
-    # We could mock it, but per instructions, we keep it skipped until approved.
-    
     # Mocking just to show it would work if we weren't skipping
     class MockIncident:
         id = 99
     
     def mock_create(*args, **kwargs):
-        return {"report": None, "incident": MockIncident()}
+        return (None, MockIncident())
         
     monkeypatch.setattr("app.routers.reports.create_report_from_text", mock_create)
     
@@ -75,6 +71,13 @@ def test_twilio_webhook_success(mock_twilio_env, monkeypatch):
     assert "report received (ref #99)" in response.text
 
 def test_twilio_webhook_rate_limit(mock_twilio_env, monkeypatch):
+    class MockIncident:
+        id = 99
+    
+    def mock_create(*args, **kwargs):
+        return (None, MockIncident())
+        
+    monkeypatch.setattr("app.routers.reports.create_report_from_text", mock_create)
     monkeypatch.setenv("NOTIFY_INBOUND_MAX_PER_MIN", "2")
     
     url = "https://test.com/webhooks/twilio/sms"
@@ -85,11 +88,11 @@ def test_twilio_webhook_rate_limit(mock_twilio_env, monkeypatch):
     
     # Message 1
     r1 = client.post("/webhooks/twilio/sms", data=params, headers=headers)
-    assert r1.status_code == 500 # fails because create_report_from_text is missing, but it passed rate limit
+    assert r1.status_code == 200
     
     # Message 2
     r2 = client.post("/webhooks/twilio/sms", data=params, headers=headers)
-    assert r2.status_code == 500
+    assert r2.status_code == 200
     
     # Message 3 - should hit rate limit and return empty TwiML (200 OK, but empty message)
     r3 = client.post("/webhooks/twilio/sms", data=params, headers=headers)

@@ -18,8 +18,18 @@ def check_rate_limit(sender: str) -> bool:
     now = time.time()
     max_per_min = int(os.environ.get("NOTIFY_INBOUND_MAX_PER_MIN", "5"))
     
-    # Cleanup old timestamps
-    _rate_limits[sender] = [t for t in _rate_limits[sender] if now - t < 60]
+    # Cleanup old timestamps globally
+    expired = []
+    for k, v in _rate_limits.items():
+        _rate_limits[k] = [t for t in v if now - t < 60]
+        if not _rate_limits[k]:
+            expired.append(k)
+    for k in expired:
+        del _rate_limits[k]
+        
+    if sender not in _rate_limits and len(_rate_limits) >= 10000:
+        logger.warning("Rate limit dictionary capacity reached (10000 keys).")
+        return False
     
     if len(_rate_limits[sender]) >= max_per_min:
         return False
@@ -89,9 +99,9 @@ async def twilio_sms_webhook(
         # NOTE: create_report_from_text is expected to be implemented in app.routers.reports
         # and approved by Person A.
         from app.routers.reports import create_report_from_text
-        result = create_report_from_text(db, trimmed_body, "citizen")
+        report, incident = create_report_from_text(db, trimmed_body, "citizen")
         
-        incident_id = result["incident"].id
+        incident_id = incident.id
         
         resp = MessagingResponse()
         resp.message(f"Sahay AI: report received (ref #{incident_id}). Help is being coordinated.")
