@@ -3,6 +3,7 @@ import re
 import logging
 from dataclasses import dataclass
 from typing import Optional, List, Set
+import collections
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +16,8 @@ class SendResult:
     error_message: Optional[str]
     mock: bool
 
-recent_messages = []
-_notified_alerts: Set[str] = set()
+recent_messages = collections.deque(maxlen=100)
+_notified_alerts = collections.deque(maxlen=1000)
 _hourly_sends = 0
 _twilio_client = None
 
@@ -43,8 +44,6 @@ def send_sms(to: str, body: str) -> SendResult:
         # Mock mode
         logger.info(f"SMS (mock) to {masked_to}: {body}")
         recent_messages.append({"to": to, "body": body})
-        if len(recent_messages) > 100:
-            recent_messages.pop(0)
         return SendResult(ok=True, provider="mock", sid="mock_sid", error_code=None, error_message=None, mock=True)
 
     if not re.match(r"^\+[1-9]\d{7,14}$", to):
@@ -116,7 +115,7 @@ def notify_alert(alert) -> List[SendResult]:
         key = f"{alert.id}:{to}"
         if key in _notified_alerts:
             continue
-        _notified_alerts.add(key)
+        _notified_alerts.append(key)
         
         for channel in _channels:
             try:
