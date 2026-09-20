@@ -15,13 +15,13 @@ def test_timestamps_end_with_z():
 
     incident = IncidentListResponse(
         id=1, type=IncidentType.flood, severity=1, priority=IncidentPriority.low, status=IncidentStatus.new,
-        confidence=0.5, report_count=1, created_at=dt, updated_at=dt
+        confidence=0.5, report_count=1, score=100, created_at=dt, updated_at=dt
     )
     assert incident.model_dump_json().find("2026-09-20T12:00:00Z") != -1
 
     incident_detail = IncidentDetailResponse(
         id=1, type=IncidentType.flood, severity=1, priority=IncidentPriority.low, status=IncidentStatus.new,
-        confidence=0.5, report_count=1, created_at=dt, updated_at=dt
+        confidence=0.5, report_count=1, score=100, created_at=dt, updated_at=dt
     )
     assert incident_detail.model_dump_json().find("2026-09-20T12:00:00Z") != -1
 
