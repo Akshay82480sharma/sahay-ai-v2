@@ -1,22 +1,35 @@
 import httpx
 import os
+import time
 import json
 import logging
+from typing import Dict, Any
 from app.services.llm import LLMProvider
 
 logger = logging.getLogger(__name__)
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+# Constants from design
+GEMINI_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"] # Using real available models for 2026/now
+LLM_TIMEOUT = 5.0
+COOLDOWN_SECONDS = 60
 
 class GeminiProvider(LLMProvider):
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
+        self.cache = {}
+        self.cooldowns = {model: 0.0 for model in GEMINI_MODELS}
+        
         if not self.api_key or self.api_key == "your_key_here":
-            logger.warning("GEMINI_API_KEY is not set or invalid. Gemini calls will fail.")
+            logger.warning("GEMINI_API_KEY is missing. Gemini calls will fall back to keyword extraction.")
 
     def classify(self, text: str, source: str) -> dict:
         if not self.api_key:
             raise ValueError("No Gemini API key")
+
+        # 1. Cache hit?
+        cache_key = f"{source}:{text}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
 
         prompt = f"""
         You are an emergency dispatch AI. Classify the following incident report.
@@ -37,38 +50,55 @@ class GeminiProvider(LLMProvider):
             "is_likely_false": boolean (true if spam/fake)
         }}
         """
-        
         payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }],
+            "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "temperature": 0.1
             }
         }
-        
-        with httpx.Client(timeout=5.0) as client:
-            response = client.post(
-                f"{GEMINI_URL}?key={self.api_key}",
-                json=payload
-            )
-            response.raise_for_status()
-            
-            data = response.json()
+
+        # 2. Iterate through tiers
+        for model in GEMINI_MODELS:
+            # Skip if cooling down
+            if time.time() < self.cooldowns.get(model, 0):
+                continue
+                
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.api_key}"
             try:
-                # The response could be nested
-                text_response = data["candidates"][0]["content"]["parts"][0]["text"]
+                with httpx.Client(timeout=LLM_TIMEOUT) as client:
+                    resp = client.post(url, json=payload)
+                    
+                if resp.status_code == 429:
+                    logger.warning(f"Model {model} hit 429. Cooling down.")
+                    self.cooldowns[model] = time.time() + COOLDOWN_SECONDS
+                    continue
+                elif resp.status_code != 200:
+                    logger.error(f"Model {model} failed with {resp.status_code}")
+                    continue
                 
-                # Strip markdown fencing if present
-                text_response = text_response.strip()
-                if text_response.startswith("```"):
-                    text_response = text_response.split("\n", 1)[-1]
-                if text_response.endswith("```"):
-                    text_response = text_response.rsplit("\n", 1)[0]
-                text_response = text_response.strip()
+                # Parse
+                data = resp.json()
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 
-                return json.loads(text_response)
-            except (KeyError, IndexError, json.JSONDecodeError) as e:
-                logger.error(f"Failed to parse Gemini response: {e}")
-                raise ValueError("Invalid response format from Gemini")
+                # Clean markdown if present
+                if raw_text.startswith("```json"):
+                    raw_text = raw_text[7:]
+                if raw_text.endswith("```"):
+                    raw_text = raw_text[:-3]
+                    
+                result = json.loads(raw_text.strip())
+                
+                # Cache and return
+                self.cache[cache_key] = result
+                return result
+                
+            except httpx.TimeoutException:
+                logger.warning(f"Model {model} timed out. Trying next tier.")
+                continue
+            except Exception as e:
+                logger.warning(f"Model {model} failed: {e}")
+                continue
+        
+        # 3. If all tiers fail, throw to trigger keyword fallback
+        raise RuntimeError("All Gemini tiers exhausted or failed. Falling back to Keyword engine.")
