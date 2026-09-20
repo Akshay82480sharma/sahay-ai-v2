@@ -9,7 +9,7 @@ from app.models.incident import Incident
 from app.models.assignment import Assignment
 from app.models.resource import Resource
 from app.models.alert import Alert
-from app.models.enums import IncidentStatus, IncidentPriority, AssignmentStatus, ResourceStatus
+from app.models.enums import IncidentStatus, IncidentPriority, AssignmentStatus, ResourceStatus, AlertKind
 from app.services.events import broadcast_nowait
 from app.services.notifications import notify_alert
 from app.utils.timeutil import format_iso8601_z
@@ -89,7 +89,7 @@ def run_checks(db: Session, now: datetime):
                 create_alert(assign.incident_id, "delayed", f"Assignment #{assign.id} ({res_name}) has not gone en-route within {ALERT_NOT_EN_ROUTE_SECONDS // 60} minutes of dispatch.")
                 
     # (e) an unacknowledged alert older than 180s -> kind escalation
-    unack_alerts = db.query(Alert).filter(Alert.acknowledged == False, Alert.kind != "escalation").all()
+    unack_alerts = db.query(Alert).filter(Alert.acknowledged == False, Alert.kind != AlertKind.escalation.value).all()
     for al in unack_alerts:
         diff = (now - al.created_at.replace(tzinfo=timezone.utc)).total_seconds()
         if diff > ALERT_ESCALATE_SECONDS:
