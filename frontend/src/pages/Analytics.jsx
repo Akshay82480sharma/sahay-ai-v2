@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getAnalyticsSummary } from '../api/analytics';
-import { formatDuration } from '../utils/time';
+import { mmss } from '../utils/time';
 import IncidentTypeChart from '../components/analytics/IncidentTypeChart';
-import StatusCountsChart from '../components/analytics/ResponseTimeChart'; // using the file we wrote
+import StatusCountsChart from '../components/analytics/StatusCountsChart';
 
 export default function Analytics() {
   const [data, setData] = useState(null);
@@ -68,7 +68,7 @@ export default function Analytics() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col justify-center items-center">
           <span className="text-sm font-medium text-gray-500 mb-1">Avg Response Time</span>
           <span className="text-4xl font-bold text-blue-600">
-            {formatDuration(avg_response_seconds)}
+            {mmss(avg_response_seconds)}
           </span>
         </div>
         

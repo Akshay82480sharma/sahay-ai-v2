@@ -59,6 +59,15 @@ class GeminiProvider(LLMProvider):
             try:
                 # The response could be nested
                 text_response = data["candidates"][0]["content"]["parts"][0]["text"]
+                
+                # Strip markdown fencing if present
+                text_response = text_response.strip()
+                if text_response.startswith("```"):
+                    text_response = text_response.split("\n", 1)[-1]
+                if text_response.endswith("```"):
+                    text_response = text_response.rsplit("\n", 1)[0]
+                text_response = text_response.strip()
+                
                 return json.loads(text_response)
             except (KeyError, IndexError, json.JSONDecodeError) as e:
                 logger.error(f"Failed to parse Gemini response: {e}")

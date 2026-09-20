@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { updateAssignment } from '../../api/dispatch';
 import { useLiveData } from '../../context/LiveDataProvider';
-import { timeAgo, formatDuration } from '../../utils/time';
+import { timeAgo, mmss } from '../../utils/time';
 
 export default function AssignmentTracker({
   incidentId,
@@ -85,7 +85,7 @@ export default function AssignmentTracker({
                   </div>
                   <div className="text-xs text-gray-500 mt-1 flex gap-3">
                     {assignment.eta_seconds != null && (
-                      <span>ETA: {formatDuration(assignment.eta_seconds)}</span>
+                      <span>ETA: {mmss(assignment.eta_seconds)}</span>
                     )}
                     {assignment.dispatched_at && (
                       <span>Dispatched {timeAgo(assignment.dispatched_at)}</span>

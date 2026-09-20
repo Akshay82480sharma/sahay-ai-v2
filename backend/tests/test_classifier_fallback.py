@@ -8,7 +8,7 @@ def test_fallback_gujarati():
     assert res["severity"] == 3
     assert res["priority"] == "high"
     assert res["language"] == "gu"
-    assert res["summary"] == "પાણી ઘરમાં ઘૂસી ગયું છે, મદદ મોકલો"
+    assert res["summary"] == "High priority Flood reported. Original text: પાણી ઘરમાં ઘૂસી ગયું છે, મદદ મોકલો"
     
 def test_fallback_hinglish():
     res = fallback_classify("aag lag gayi hai building me, madad chahiye", "citizen")

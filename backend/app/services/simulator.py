@@ -3,6 +3,7 @@ import os
 import json
 import logging
 import httpx
+import uuid
 from sqlalchemy.orm import Session
 
 from app.models.incident import Incident
@@ -15,7 +16,16 @@ from scripts.seed import seed_if_empty
 logger = logging.getLogger(__name__)
 SIMULATOR_BASE_URL = os.environ.get("SIMULATOR_BASE_URL", "http://localhost:8000")
 
+_current_sim_id = None
+
+def set_current_sim() -> str:
+    global _current_sim_id
+    _current_sim_id = str(uuid.uuid4())
+    return _current_sim_id
+
 def reset_simulation(db: Session):
+    global _current_sim_id
+    _current_sim_id = None
     db.query(Assignment).delete()
     db.query(Report).delete()
     db.query(Alert).delete()
@@ -24,7 +34,7 @@ def reset_simulation(db: Session):
     db.commit()
     seed_if_empty(db)
 
-async def run_scenario_background(scenario_name: str, speed: float):
+async def run_scenario_background(scenario_name: str, speed: float, sim_id: str):
     scenario_path = os.path.join(os.path.dirname(__file__), f"../data/scenarios/{scenario_name}.json")
     if not os.path.exists(scenario_path):
         logger.error(f"Scenario {scenario_name} not found.")
@@ -44,6 +54,10 @@ async def run_scenario_background(scenario_name: str, speed: float):
 
     async with httpx.AsyncClient(base_url=SIMULATOR_BASE_URL) as client:
         for r in reports:
+            if _current_sim_id != sim_id:
+                logger.info(f"Simulation {sim_id} cancelled or superseded.")
+                break
+                
             try:
                 delay = r.get("delay_seconds", 0) / speed
                 target_time = start_time + delay

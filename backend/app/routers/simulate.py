@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.services.simulator import reset_simulation, run_scenario_background
+from app.services.simulator import reset_simulation, run_scenario_background, set_current_sim
 import os
 import json
 
@@ -27,7 +27,8 @@ def run_scenario(scenario: str, background_tasks: BackgroundTasks, speed: float 
     max_delay = max([r.get("delay_seconds", 0) for r in reports]) if reports else 0
     sim_time = int(max_delay / speed)
         
-    background_tasks.add_task(run_scenario_background, scenario, speed)
+    sim_id = set_current_sim()
+    background_tasks.add_task(run_scenario_background, scenario, speed, sim_id)
     
     return {
         "scenario": scenario,

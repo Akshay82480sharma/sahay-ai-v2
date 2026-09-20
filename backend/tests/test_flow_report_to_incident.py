@@ -27,7 +27,7 @@ def test_report_to_incident_flow(client):
     # 2. Get all incidents
     list_res = client.get("/incidents")
     assert list_res.status_code == 200
-    list_data = list_res.json()
+    list_data = list_res.json()["incidents"]
     assert len(list_data) >= 1
     assert any(i["id"] == incident_data["id"] for i in list_data)
     

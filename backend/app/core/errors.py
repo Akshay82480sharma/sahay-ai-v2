@@ -19,7 +19,22 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     return create_error_response(code, str(exc.detail), exc.status_code)
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return create_error_response("validation_error", str(exc), 422)
+    details = {}
+    for error in exc.errors():
+        loc = error.get("loc", [])
+        if len(loc) > 1 and loc[0] in ("body", "query", "path", "header"):
+            field = ".".join(str(x) for x in loc[1:])
+        else:
+            field = ".".join(str(x) for x in loc)
+        details[field] = error.get("msg", "")
+        
+    return JSONResponse(
+        status_code=400,
+        content={
+            "error": "Validation failed",
+            "details": details
+        }
+    )
 
 async def global_exception_handler(request: Request, exc: Exception):
     return create_error_response("internal_server_error", "An internal server error occurred.", 500)

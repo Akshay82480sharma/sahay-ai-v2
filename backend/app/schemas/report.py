@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from app.schemas.common import UtcDatetime
 from app.models.enums import Source
 
 class ReportCreate(BaseModel):
@@ -17,7 +17,7 @@ class ReportResponse(BaseModel):
     lat: Optional[float] = None
     lng: Optional[float] = None
     language: Optional[str] = None
-    created_at: datetime
+    created_at: UtcDatetime
     incident_id: Optional[int] = None
 
     class Config:

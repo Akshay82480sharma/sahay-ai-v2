@@ -21,7 +21,7 @@ export function timeAgo(dateString) {
   return `${days} days ago`;
 }
 
-export function formatDuration(seconds) {
+export function mmss(seconds) {
   if (seconds == null || isNaN(seconds)) return '--:--';
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);

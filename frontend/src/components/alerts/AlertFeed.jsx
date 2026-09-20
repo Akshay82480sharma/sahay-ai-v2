@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useLiveData } from '../../context/LiveDataProvider';
 import AlertItem from './AlertItem';
+import { parseUtc } from '../../utils/time';
 
 export default function AlertFeed() {
   const { alerts } = useLiveData();
@@ -14,7 +15,7 @@ export default function AlertFeed() {
       if (a.acknowledged !== b.acknowledged) {
         return a.acknowledged ? 1 : -1;
       }
-      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      return (parseUtc(b.created_at) || 0) - (parseUtc(a.created_at) || 0);
     });
 
     if (showUnacknowledgedOnly) {

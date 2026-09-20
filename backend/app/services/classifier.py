@@ -31,12 +31,16 @@ def fallback_classify(text: str, source: str) -> Dict[str, Any]:
     lang, rules = detect_language_and_rules(text)
     incident_type, severity = extract_hints(text, rules)
     
+    type_str = incident_type.replace('_', ' ').capitalize() if incident_type != "other" else "Unknown incident"
+    pri_str = calculate_priority(severity).capitalize()
+    summary = f"{pri_str} priority {type_str} reported. Original text: {text[:100]}{'...' if len(text)>100 else ''}"
+    
     return {
         "type": incident_type,
         "severity": severity,
         "priority": calculate_priority(severity),
         "location_name": None,
-        "summary": text, # Raw text as summary in fallback
+        "summary": summary,
         "required_resources": [],
         "language": lang,
         "is_likely_false": False

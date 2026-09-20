@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDuration } from '../../utils/time';
+import { mmss } from '../../utils/time';
 
 export default function RecommendationPanel({
   incidentId,
@@ -71,7 +71,7 @@ export default function RecommendationPanel({
                           <p className="text-xs text-gray-500 capitalize">{rec.resource?.type?.replace('_', ' ')}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-gray-700">ETA {formatDuration(rec.eta_seconds)}</p>
+                          <p className="text-sm font-bold text-gray-700">ETA {mmss(rec.eta_seconds)}</p>
                         </div>
                       </div>
                       <p className="text-xs text-gray-600 mt-1 italic">"{rec.reasoning}"</p>

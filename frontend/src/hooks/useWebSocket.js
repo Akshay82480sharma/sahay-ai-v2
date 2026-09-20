@@ -9,11 +9,22 @@ export function useWebSocket() {
   const reconnectDelayRef = useRef(1000);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (
+      wsRef.current?.readyState === WebSocket.OPEN ||
+      wsRef.current?.readyState === WebSocket.CONNECTING
+    ) {
+      return;
+    }
 
     setStatus('connecting');
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
+
+    // Clear any pending reconnects
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
 
     ws.onopen = () => {
       setStatus('open');
@@ -30,13 +41,20 @@ export function useWebSocket() {
     };
 
     ws.onclose = () => {
-      setStatus('closed');
+      setStatus('reconnecting');
       wsRef.current = null;
-      // Exponential backoff
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      const delay = reconnectDelayRef.current;
       reconnectTimeoutRef.current = setTimeout(() => {
-        reconnectDelayRef.current = Math.min(reconnectDelayRef.current * 1.5, 15000);
         connect();
-      }, reconnectDelayRef.current);
+      }, delay);
+      
+      // Update for next backoff step, max 30s
+      reconnectDelayRef.current = Math.min(delay * 1.5, 30000);
     };
 
     ws.onerror = (err) => {

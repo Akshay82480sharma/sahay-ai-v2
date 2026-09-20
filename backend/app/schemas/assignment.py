@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from app.schemas.common import UtcDatetime
 from app.models.enums import AssignmentStatus
 
 class AssignmentResponse(BaseModel):
@@ -9,8 +9,8 @@ class AssignmentResponse(BaseModel):
     resource_id: int
     status: AssignmentStatus
     eta_seconds: Optional[int] = None
-    dispatched_at: Optional[datetime] = None
-    arrived_at: Optional[datetime] = None
+    dispatched_at: Optional[UtcDatetime] = None
+    arrived_at: Optional[UtcDatetime] = None
     reasoning: Optional[str] = None
 
     class Config:

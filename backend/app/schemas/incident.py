@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List, Any
-from datetime import datetime
+from app.schemas.common import UtcDatetime
 from app.models.enums import IncidentType, IncidentPriority, IncidentStatus
 from .report import ReportResponse
 from .assignment import AssignmentResponse
@@ -22,8 +22,8 @@ class IncidentListResponse(BaseModel):
     confidence: float
     report_count: int
     required_resources: Optional[List[RequiredResource]] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: UtcDatetime
+    updated_at: UtcDatetime
 
     class Config:
         from_attributes = True
@@ -34,3 +34,7 @@ class IncidentDetailResponse(IncidentListResponse):
 
     class Config:
         from_attributes = True
+
+class IncidentPaginatedResponse(BaseModel):
+    incidents: List[IncidentListResponse]
+    count: int

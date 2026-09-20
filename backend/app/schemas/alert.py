@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from app.schemas.common import UtcDatetime
 from app.models.enums import AlertKind
 
 class AlertResponse(BaseModel):
@@ -9,7 +9,7 @@ class AlertResponse(BaseModel):
     kind: AlertKind
     message: str
     acknowledged: bool
-    created_at: datetime
+    created_at: UtcDatetime
 
     class Config:
         from_attributes = True
