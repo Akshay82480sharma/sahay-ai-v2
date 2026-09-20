@@ -39,6 +39,17 @@ export function LiveDataProvider({ children }) {
     }
   }, [lastMessage]);
 
+  const [globalSettings, setGlobalSettings] = useState({
+    showIncidents: true,
+    showResources: true,
+    darkMode: true,
+    heatmap: false,
+    autoAssign: true,
+    aiRecs: true,
+    traffic: true,
+    sound: false
+  });
+
   const subscribe = useCallback((eventName, handler) => {
     if (!subscribersRef.current[eventName]) {
       subscribersRef.current[eventName] = new Set();
@@ -57,6 +68,8 @@ export function LiveDataProvider({ children }) {
     resources,
     setResources,
     subscribe,
+    globalSettings,
+    setGlobalSettings
   };
 
   return (

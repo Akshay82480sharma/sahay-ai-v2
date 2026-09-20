@@ -1,217 +1,492 @@
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { APIProvider, Map, Marker, InfoWindow, useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { useIncidents } from '../../hooks/useIncidents';
 import { useLiveData } from '../../context/LiveDataProvider';
-import { Layers, X } from 'lucide-react';
 
-// Remove default Leaflet icon logic
-// We'll use custom HTML markers with Tailwind
+// ── Directions Route (real roads) ──────────────────────────────
+const DirectionsRoute = ({ origin, destination, onRouteReady }) => {
+  const map = useMap();
+  const routesLib = useMapsLibrary('routes');
+  const rendererRef = useRef(null);
 
-// Custom Resource Icon (blue circle)
-const ResourceIcon = L.divIcon({
-  className: 'bg-transparent border-none',
-  html: `<div class="w-3 h-3 bg-[#2563eb] rounded-full border-2 border-brand-panel shadow-md"></div>`,
-  iconSize: [12, 12],
-  iconAnchor: [6, 6]
-});
+  const origKey = origin ? `${origin.lat},${origin.lng}` : '';
+  const destKey = destination ? `${destination.lat},${destination.lng}` : '';
 
-// Custom Dispatched Icon (pulsing orange circle)
-const DispatchedIcon = L.divIcon({
-  className: 'bg-transparent border-none',
-  html: `<div class="relative flex h-3 w-3">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f59e0b] opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-3 w-3 bg-[#f59e0b] border-2 border-brand-panel shadow-md"></span>
-        </div>`,
-  iconSize: [12, 12],
-  iconAnchor: [6, 6]
-});
+  useEffect(() => {
+    if (!map || !routesLib || !origin || !destination) return;
 
-const getIncidentIcon = (priority, isSelected) => {
-  let color = '#3b82f6'; // low (info)
-  if (priority === 'critical') color = '#ef4444';
-  else if (priority === 'high') color = '#f97316';
-  else if (priority === 'medium') color = '#eab308';
+    const service = new routesLib.DirectionsService();
+    const renderer = new routesLib.DirectionsRenderer({
+      map,
+      suppressMarkers: true,
+      polylineOptions: {
+        strokeColor: '#f59e0b',
+        strokeOpacity: 0.85,
+        strokeWeight: 5,
+      },
+    });
+    rendererRef.current = renderer;
 
-  const scale = isSelected ? 'scale(1.2)' : 'scale(1)';
-  const shadow = isSelected ? 'drop-shadow(0px 0px 10px rgba(255,255,255,0.5))' : 'drop-shadow(0px 2px 4px rgba(0,0,0,0.5))';
+    service.route(
+      {
+        origin,
+        destination,
+        travelMode: routesLib.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === 'OK') {
+          renderer.setDirections(result);
+          // Extract the path points for the vehicle animation
+          const path = result.routes[0].overview_path.map(p => ({
+            lat: p.lat(),
+            lng: p.lng(),
+          }));
+          const leg = result.routes[0].legs[0];
+          onRouteReady && onRouteReady({
+            path,
+            distance: leg.distance?.text || '',
+            duration: leg.duration?.text || '',
+          });
+        }
+      }
+    );
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="#1e1e1e" stroke-width="1.5" style="width: 28px; height: 28px; filter: ${shadow}; transform: ${scale}; transition: all 0.2s;">
-    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-    <circle cx="12" cy="9" r="2.5" fill="white" />
-  </svg>`;
+    return () => {
+      renderer.setMap(null);
+      rendererRef.current = null;
+    };
+  }, [map, routesLib, origKey, destKey]);
 
-  return L.divIcon({
-    className: 'bg-transparent border-none',
-    html: svg,
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-    popupAnchor: [0, -28]
-  });
+  return null;
 };
 
+// ── Vehicle Animation Marker (Realistic GPS Simulation) ────────
+const VehicleMarker = ({ routePath, onProgress }) => {
+  const [position, setPosition] = useState(null);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    if (!routePath || routePath.length < 2) {
+      setPosition(null);
+      return;
+    }
+
+    // Pre-calculate cumulative distances along the path
+    const cumDist = [0];
+    for (let i = 1; i < routePath.length; i++) {
+      cumDist.push(cumDist[i - 1] + getDistance(routePath[i - 1], routePath[i]));
+    }
+    const totalDistance = cumDist[cumDist.length - 1];
+    if (totalDistance === 0) return;
+
+    // Simulate a ~40 km/h average speed for emergency vehicle in city
+    // But compress time: entire route in ~30 seconds for demo
+    const DURATION_MS = 30000;
+    const startTime = Date.now();
+
+    setPosition(routePath[0]);
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / DURATION_MS, 1);
+      
+      // Ease-in-out for realistic acceleration/deceleration
+      const eased = progress < 0.1
+        ? progress * 5 * progress * 5 / 2  // accelerate
+        : progress > 0.9
+          ? 1 - Math.pow(1 - progress, 2) * 2 // decelerate
+          : progress; // constant
+      
+      const targetDist = eased * totalDistance;
+
+      // Binary search for the right segment
+      let segIdx = 0;
+      for (let i = 1; i < cumDist.length; i++) {
+        if (cumDist[i] >= targetDist) {
+          segIdx = i - 1;
+          break;
+        }
+        segIdx = i - 1;
+      }
+
+      const segStart = cumDist[segIdx];
+      const segEnd = cumDist[segIdx + 1] || cumDist[segIdx];
+      const segLen = segEnd - segStart;
+      const segProgress = segLen > 0 ? (targetDist - segStart) / segLen : 0;
+
+      const from = routePath[segIdx];
+      const to = routePath[segIdx + 1] || routePath[segIdx];
+
+      const lat = from.lat + (to.lat - from.lat) * segProgress;
+      const lng = from.lng + (to.lng - from.lng) * segProgress;
+      setPosition({ lat, lng });
+
+      // Report progress to parent for live ETA updates
+      const remainingDist = totalDistance - targetDist;
+      const remainingTime = Math.max(0, Math.round((DURATION_MS - elapsed) / 1000));
+      onProgress && onProgress({
+        progress,
+        remainingDistance: remainingDist,
+        remainingTime,
+        currentPosition: { lat, lng },
+      });
+
+      if (progress < 1) {
+        animRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [routePath]);
+
+  if (!position) return null;
+
+  // Emergency vehicle icon — green circle with pulsing ring
+  const vehicleSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" fill="%2310b981" fill-opacity="0.2" stroke="%2310b981" stroke-width="1"/><circle cx="18" cy="18" r="10" fill="%2310b981" stroke="white" stroke-width="2.5"/><path d="M18 12v6M15 18h6" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+
+  return (
+    <Marker
+      position={position}
+      icon={{
+        url: `data:image/svg+xml;charset=UTF-8,${vehicleSvg}`,
+        anchor: { x: 18, y: 18 },
+      }}
+      zIndex={9999}
+    />
+  );
+};
+
+// ── Haversine helper (meters) ──────────────────────────────────
+function getDistance(a, b) {
+  const R = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const sin1 = Math.sin(dLat / 2);
+  const sin2 = Math.sin(dLng / 2);
+  const x = sin1 * sin1 + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sin2 * sin2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// ── Incident color helper ──────────────────────────────────────
+const getIncidentColor = (priority) => {
+  if (priority === 'critical') return '#ef4444';
+  if (priority === 'high') return '#f97316';
+  if (priority === 'medium') return '#eab308';
+  return '#3b82f6';
+};
+
+// ── Flood Zone Circles ─────────────────────────────────────────
+const FloodCircles = ({ zones }) => {
+  const map = useMap();
+  const maps = useMapsLibrary('maps');
+
+  useEffect(() => {
+    if (!map || !maps || !zones) return;
+    const circles = zones.map(z => {
+      const circle = new maps.Circle({
+        center: { lat: z.lat, lng: z.lng },
+        radius: z.radius,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.15,
+        strokeColor: '#3b82f6',
+        strokeOpacity: 0.5,
+        strokeWeight: 2,
+        map,
+      });
+      return circle;
+    });
+    return () => circles.forEach(c => c.setMap(null));
+  }, [map, maps, zones]);
+
+  return null;
+};
+
+// ══════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ══════════════════════════════════════════════════════════════
 export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter = 'All' }) {
   const { incidents } = useIncidents();
-  const { resources = [] } = useLiveData();
-  const [isLayersOpen, setIsLayersOpen] = useState(true);
-  
-  // Vadodara coordinates
-  const defaultCenter = [22.3072, 73.1812];
-  
-  // Lock the map to Vadodara and surrounding area to prevent getting lost
-  const bounds = [
-    [22.1000, 72.9000], // Southwest
-    [22.5000, 73.4000]  // Northeast
+  const { resources = [], globalSettings = {} } = useLiveData();
+  const darkMode = globalSettings.darkMode ?? true;
+  const [routeInfo, setRouteInfo] = useState(null);
+  const [routePath, setRoutePath] = useState(null);
+  const [vehicleProgress, setVehicleProgress] = useState(null);
+  const [selectedPOI, setSelectedPOI] = useState(null);
+
+  const defaultCenter = { lat: 22.3072, lng: 73.1812 };
+
+  // ── Static Map Data ──────────────────────────────────────────
+  const hospitals = [
+    { id: 'h1', name: 'SSG Hospital', lat: 22.3023, lng: 73.1925, beds: 42 },
+    { id: 'h2', name: 'Gotri Medical College', lat: 22.3168, lng: 73.1491, beds: 15 },
+    { id: 'h3', name: 'Bhailal Amin General Hospital', lat: 22.3218, lng: 73.1627, beds: 8 },
+    { id: 'h4', name: 'Sterling Hospital', lat: 22.2982, lng: 73.1743, beds: 30 },
+    { id: 'h5', name: 'Baroda Medical College', lat: 22.3095, lng: 73.1960, beds: 22 },
   ];
 
-  // Calculate mock route to closest available resource when incident is selected
-  const mockRoute = useMemo(() => {
+  const roadClosures = [
+    { id: 'rc1', name: 'Sayajigunj Underpass — Flooded', lat: 22.3090, lng: 73.1910 },
+    { id: 'rc2', name: 'Old Padra Rd — Waterlogged', lat: 22.2950, lng: 73.1720 },
+    { id: 'rc3', name: 'Ajwa Road — Debris', lat: 22.3175, lng: 73.2270 },
+    { id: 'rc4', name: 'Gotri Bridge — Structural Check', lat: 22.3130, lng: 73.1520 },
+  ];
+
+  const floodZones = [
+    { id: 'fz1', name: 'Vishwamitri River Bank', lat: 22.3050, lng: 73.2014, radius: 600 },
+    { id: 'fz2', name: 'Sursagar Lake Overflow', lat: 22.3005, lng: 73.1960, radius: 400 },
+    { id: 'fz3', name: 'Atladara Low-Lying Area', lat: 22.2858, lng: 73.1541, radius: 500 },
+    { id: 'fz4', name: 'Harni Lake Overflow', lat: 22.3340, lng: 73.2110, radius: 450 },
+  ];
+
+  // ── Find closest resource for routing ────────────────────────
+  const routeEndpoints = useMemo(() => {
     if (!selectedIncident || !selectedIncident.lat || !selectedIncident.lng) return null;
-    
-    // Find closest available resource
-    const available = resources.filter(r => r.status === 'available' && r.lat && r.lng);
-    if (available.length === 0) return null;
-    
-    let closest = available[0];
+    const validResources = resources.filter(r => r.lat && r.lng);
+    if (validResources.length === 0) return null;
+    let closest = validResources[0];
     let minDist = Infinity;
-    
-    available.forEach(r => {
+    validResources.forEach(r => {
       const dist = Math.pow(r.lat - selectedIncident.lat, 2) + Math.pow(r.lng - selectedIncident.lng, 2);
       if (dist < minDist) {
         minDist = dist;
         closest = r;
       }
     });
-    
-    return [
-      [closest.lat, closest.lng],
-      [selectedIncident.lat, selectedIncident.lng]
-    ];
+    return {
+      origin: { lat: closest.lat, lng: closest.lng },
+      destination: { lat: selectedIncident.lat, lng: selectedIncident.lng },
+    };
   }, [selectedIncident, resources]);
 
-  const showIncidents = mapFilter === 'All' || mapFilter === 'Incidents';
-  const showUnits = mapFilter === 'All' || mapFilter === 'Units';
+  useEffect(() => {
+    if (!selectedIncident) {
+      setRouteInfo(null);
+      setRoutePath(null);
+    }
+  }, [selectedIncident]);
+
+  const handleRouteReady = useCallback((info) => {
+    setRouteInfo(info);
+    setRoutePath(info.path);
+  }, []);
+
+  // ── Filter flags ─────────────────────────────────────────────
+  const showIncidents = (globalSettings.showIncidents ?? true) && (mapFilter === 'All' || mapFilter === 'Incidents');
+  const showResources = (globalSettings.showResources ?? true) && (mapFilter === 'All' || mapFilter === 'Units');
   const showHospitals = mapFilter === 'All' || mapFilter === 'Hospitals';
+  const showFloodZones = mapFilter === 'All' || mapFilter === 'Flood Zones';
+  const showRoadClosures = mapFilter === 'All' || mapFilter === 'Road Closures';
+
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+  if (!apiKey) {
+    return (
+      <div className="w-full h-full bg-[#111] text-brand-muted flex items-center justify-center font-mono text-sm border border-[#1E2638] rounded-xl">
+        Missing VITE_GOOGLE_MAPS_API_KEY
+      </div>
+    );
+  }
+
+  // SVG icon helpers
+  const hospitalSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3" fill="%23059669" stroke="white" stroke-width="1.5"/><path d="M12 8v8M8 12h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  const roadClosureSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"><polygon points="12,2 22,22 2,22" fill="%23ef4444" stroke="white" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9v5" stroke="white" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="white"/></svg>`;
+  const floodZoneSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%233b82f6" fill-opacity="0.4" stroke="%233b82f6" stroke-width="1.5"/><path d="M6 14c1.5-2 3-2 4.5 0s3 2 4.5 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M6 10c1.5-2 3-2 4.5 0s3 2 4.5 0" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>`;
 
   return (
     <div className="w-full h-full relative z-0">
-      <style>{`
-        @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-          70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-      `}</style>
-      <MapContainer 
-        center={defaultCenter} 
-        zoom={13} 
-        minZoom={11}
-        maxBounds={bounds}
-        maxBoundsViscosity={1.0}
-        zoomControl={false}
-        style={{ height: '100%', width: '100%', backgroundColor: '#111' }}
-      >
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=cb1_3r9f_1_7c83aca1acb72d1b501b80f2"
-          attribution='&copy; OpenStreetMap contributors, &copy; CARTO'
-          noWrap={true}
-        />
-        {showIncidents && incidents?.map(inc => {
-          const isSelected = selectedIncident && selectedIncident.id === inc.id;
-          return (
-            inc.lat && inc.lng && (
-              <Marker 
-                key={`inc-${inc.id}`} 
-                position={[inc.lat, inc.lng]} 
-                icon={getIncidentIcon(inc.priority, isSelected)}
-                eventHandlers={{ click: () => onSelectIncident && onSelectIncident(inc) }}
-              >
-              </Marker>
-            )
-          );
-        })}
-        {mockRoute && (
-          <Polyline 
-            positions={mockRoute} 
-            color="#f59e0b" 
-            weight={3} 
-            dashArray="10, 10"
-            className="animate-pulse opacity-75"
-          />
-        )}
-        {resources?.filter(res => {
-          if (showUnits && res.type !== 'Hospital') return true;
-          if (showHospitals && res.type === 'Hospital') return true;
-          if (mapFilter === 'All') return true;
-          return false;
-        }).map(res => (
-          res.lat && res.lng && (
-            <Marker 
-              key={`res-${res.id}`} 
-              position={[res.lat, res.lng]}
-              icon={['dispatched', 'en_route', 'on_scene'].includes(res.status?.toLowerCase()) ? DispatchedIcon : ResourceIcon}
-            >
-              <Popup>
-                <strong>{res.name}</strong><br/>
-                Type: {res.type}<br/>
-                Status: <span style={{ textTransform: 'uppercase', color: ['dispatched', 'en_route', 'on_scene'].includes(res.status?.toLowerCase()) ? '#f59e0b' : '#2563eb' }}>{res.status}</span>
-              </Popup>
-            </Marker>
-          )
-        ))}
-      </MapContainer>
-      {/* MAP LAYERS LEGEND */}
-      {isLayersOpen ? (
-        <div className="absolute top-1/2 -translate-y-1/2 left-4 z-[400] bg-[#0A0E17]/95 border border-[#1E2638] rounded-lg p-4 shadow-xl backdrop-blur-sm w-48 font-sans">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-white text-xs font-bold flex items-center gap-2">
-              <Layers size={14} /> Map Layers
-            </h3>
-            <button 
-              onClick={() => setIsLayersOpen(false)}
-              className="text-brand-muted hover:text-white p-1 rounded transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        <div className="flex flex-col gap-2 text-xs text-brand-muted">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="accent-blue-500" />
-            <span className="text-white">Incidents</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="accent-blue-500" />
-            <span className="text-white">Emergency Units</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="accent-blue-500" />
-            <span className="text-white">Hospitals</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="accent-blue-500" />
-            <span className="text-blue-400">Flood Zones</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="accent-blue-500" />
-            <span className="text-brand-muted">Traffic</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="accent-blue-500" />
-            <span className="text-brand-muted">Heatmap</span>
-          </label>
-        </div>
-      </div>
-      ) : (
-        <button 
-          onClick={() => setIsLayersOpen(true)}
-          className="absolute top-1/2 -translate-y-1/2 left-4 z-[400] bg-[#0A0E17]/95 border border-[#1E2638] rounded-lg p-3 shadow-xl backdrop-blur-sm text-white hover:bg-[#111622] transition-colors"
-          title="Map Layers"
+      <APIProvider apiKey={apiKey}>
+        <Map
+          defaultCenter={defaultCenter}
+          defaultZoom={13}
+          disableDefaultUI={true}
+          gestureHandling="greedy"
+          styles={darkMode ? [
+            { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
+            { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#4b6878" }] },
+            { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#16253a" }] },
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
+            { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#98a5be" }] },
+            { featureType: "road", elementType: "labels.text.stroke", stylers: [{ color: "#1d2c4d" }] },
+            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2c6675" }] },
+            { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#b0d5ce" }] },
+            { featureType: "transit", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e1626" }] },
+            { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4e6d70" }] },
+          ] : [
+            { featureType: "poi", stylers: [{ visibility: "off" }] }
+          ]}
+          style={{ width: '100%', height: '100%', backgroundColor: darkMode ? '#111' : '#fff' }}
         >
-          <Layers size={20} />
-        </button>
-      )}
+          {/* ── Incident Markers ── */}
+          {showIncidents && incidents?.map(inc => {
+            const isSelected = selectedIncident && selectedIncident.id === inc.id;
+            const color = getIncidentColor(inc.priority);
+            const scale = isSelected ? 34 : 28;
+            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="#1e1e1e" stroke-width="1.5" width="${scale}" height="${scale}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
+            return (
+              inc.lat && inc.lng && (
+                <Marker
+                  key={`inc-${inc.id}`}
+                  position={{ lat: inc.lat, lng: inc.lng }}
+                  onClick={() => onSelectIncident && onSelectIncident(inc)}
+                  icon={{
+                    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svgStr)}`,
+                    anchor: { x: scale / 2, y: scale },
+                  }}
+                />
+              )
+            );
+          })}
 
+          {/* ── Directions Route (real roads) ── */}
+          {routeEndpoints && (
+            <DirectionsRoute
+              origin={routeEndpoints.origin}
+              destination={routeEndpoints.destination}
+              onRouteReady={handleRouteReady}
+            />
+          )}
+
+          {/* ── Animated Vehicle Marker ── */}
+          {routePath && <VehicleMarker routePath={routePath} onProgress={setVehicleProgress} />}
+
+          {/* ── Resource Markers ── */}
+          {showResources && resources?.filter(res => res.type !== 'rescue_boat').map(res => {
+            if (!res.lat || !res.lng) return null;
+            const isDispatched = ['dispatched', 'en_route', 'on_scene'].includes(res.status?.toLowerCase());
+            const color = isDispatched ? '%23f59e0b' : '%233b82f6';
+            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="6" fill="${color}" stroke="white" stroke-width="2"/></svg>`;
+            return (
+              <Marker
+                key={`res-${res.id}`}
+                position={{ lat: res.lat, lng: res.lng }}
+                title={res.name}
+                icon={{
+                  url: `data:image/svg+xml;charset=UTF-8,${svgStr}`,
+                  anchor: { x: 8, y: 8 },
+                }}
+              />
+            );
+          })}
+
+          {/* ── Hospital Markers ── */}
+          {showHospitals && hospitals.map(h => (
+            <Marker
+              key={h.id}
+              position={{ lat: h.lat, lng: h.lng }}
+              onClick={() => setSelectedPOI({ ...h, type: 'hospital' })}
+              icon={{
+                url: `data:image/svg+xml;charset=UTF-8,${hospitalSvg}`,
+                anchor: { x: 14, y: 14 },
+              }}
+            />
+          ))}
+
+          {/* ── Road Closure Markers ── */}
+          {showRoadClosures && roadClosures.map(rc => (
+            <Marker
+              key={rc.id}
+              position={{ lat: rc.lat, lng: rc.lng }}
+              onClick={() => setSelectedPOI({ ...rc, type: 'roadClosure' })}
+              icon={{
+                url: `data:image/svg+xml;charset=UTF-8,${roadClosureSvg}`,
+                anchor: { x: 14, y: 24 },
+              }}
+            />
+          ))}
+
+          {/* ── Flood Zone Markers ── */}
+          {showFloodZones && floodZones.map(fz => (
+            <Marker
+              key={fz.id}
+              position={{ lat: fz.lat, lng: fz.lng }}
+              onClick={() => setSelectedPOI({ ...fz, type: 'floodZone' })}
+              icon={{
+                url: `data:image/svg+xml;charset=UTF-8,${floodZoneSvg}`,
+                anchor: { x: 12, y: 12 },
+              }}
+            />
+          ))}
+
+          {/* ── Flood Zone Circles ── */}
+          {showFloodZones && <FloodCircles zones={floodZones} />}
+
+          {/* ── POI InfoWindow ── */}
+          {selectedPOI && (
+            <InfoWindow
+              position={{ lat: selectedPOI.lat, lng: selectedPOI.lng }}
+              onCloseClick={() => setSelectedPOI(null)}
+              headerContent={null}
+            >
+              <div className="font-sans px-1 py-0.5">
+                <h4 className="font-bold text-sm text-gray-800 mb-1">{selectedPOI.name}</h4>
+                {selectedPOI.type === 'hospital' && (
+                  <p className="text-xs text-gray-600">
+                    <span className="font-semibold text-emerald-600">{selectedPOI.beds}</span> beds available
+                  </p>
+                )}
+                {selectedPOI.type === 'roadClosure' && (
+                  <p className="text-xs text-red-600 font-semibold">Road closed indefinitely</p>
+                )}
+                {selectedPOI.type === 'floodZone' && (
+                  <p className="text-xs text-blue-600 font-semibold">Flood warning area</p>
+                )}
+              </div>
+            </InfoWindow>
+          )}
+        </Map>
+      </APIProvider>
+
+      {/* ── Live Route Info Badge ── */}
+      {routeInfo && (
+        <div className="absolute bottom-4 left-4 z-[500] bg-[#0A0E17]/95 backdrop-blur-md border border-[#1E2638] rounded-xl px-4 py-3 shadow-2xl font-mono text-xs min-w-[280px]">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-white font-bold">
+                {vehicleProgress && vehicleProgress.progress >= 1 ? 'ARRIVED' : 'EN ROUTE'}
+              </span>
+            </div>
+            <span className="text-brand-muted text-[10px]">{routeInfo.distance} total</span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="w-full h-1.5 bg-[#1E2638] rounded-full mb-2 overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300" 
+              style={{ width: `${vehicleProgress ? Math.round(vehicleProgress.progress * 100) : 0}%` }}
+            ></div>
+          </div>
+
+          <div className="flex justify-between text-[11px]">
+            <div className="text-brand-muted">
+              Remaining: <span className="text-white">
+                {vehicleProgress 
+                  ? `${(vehicleProgress.remainingDistance / 1000).toFixed(1)} km`
+                  : routeInfo.distance}
+              </span>
+            </div>
+            <div className="text-brand-muted">
+              ETA: <span className="text-emerald-400 font-bold">
+                {vehicleProgress
+                  ? vehicleProgress.progress >= 1 
+                    ? 'Arrived'
+                    : `${vehicleProgress.remainingTime}s`
+                  : routeInfo.duration}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

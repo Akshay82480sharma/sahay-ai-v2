@@ -52,7 +52,7 @@ Sahay AI is a **command-centre platform** that:
 - [x] **Multi-source incident collection** — citizen reports, emergency calls, sensor data, field team updates
 - [x] **AI classification & severity** — automatic incident type, severity (1–5), and priority assignment
 - [x] **Duplicate detection & consolidation** — merge related reports into single incidents with confidence scoring
-- [x] **Resource recommendation** — AI suggests teams and equipment with reasoning; mutual-aid flag when local resources are short
+- [x] **Resource recommendation & intelligent routing** — AI suggests teams, equipment, and evaluates route safety to provide reasoning. [Read the full Dispatch Logic Architecture](./DISPATCH_LOGIC.md)
 - [x] **Real-time command dashboard** — active emergencies, severity indicators, assigned teams, response status, live map
 - [x] **Alerts & escalation** — critical-unassigned, delayed-response, and no-update alerts with configurable thresholds
 - [x] **AI-generated summaries & recommendations** — natural-language incident summaries and dispatch explanations

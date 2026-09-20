@@ -36,9 +36,11 @@ export default function Analytics() {
             <h1 className="text-2xl font-bold tracking-wide">Analytics</h1>
             <p className="text-brand-muted text-sm mt-1">Insights and performance metrics</p>
           </div>
-          <button className="flex items-center gap-2 bg-[#111622] border border-[#1E2638] px-4 py-2 rounded-lg text-sm text-white hover:border-brand-muted transition-colors">
-            Last 24 hours <ChevronDown size={16} className="text-brand-muted" />
-          </button>
+          <select className="bg-[#111622] border border-[#1E2638] px-4 py-2 pr-8 rounded-lg text-sm text-white hover:border-brand-muted transition-colors focus:outline-none focus:border-blue-500 appearance-none cursor-pointer">
+            <option>Last 24 hours</option>
+            <option>Last 7 days</option>
+            <option>Last 30 days</option>
+          </select>
         </div>
 
         {/* KPI Strip */}
@@ -82,10 +84,11 @@ export default function Analytics() {
               <div className="relative w-32 h-32 flex-shrink-0">
                 <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="transparent" stroke="#1E2638" strokeWidth="12" />
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="175" />
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="200" className="origin-center -rotate-[75deg]" />
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EAB308" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="220" className="origin-center -rotate-[125deg]" />
-                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8B5CF6" strokeWidth="12" strokeDasharray="251.2" strokeDashoffset="230" className="origin-center -rotate-[175deg]" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" strokeWidth="12" strokeDasharray="80.4 251.3" strokeDashoffset="0" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EF4444" strokeWidth="12" strokeDasharray="55.3 251.3" strokeDashoffset="-80.4" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#EAB308" strokeWidth="12" strokeDasharray="45.2 251.3" strokeDashoffset="-135.7" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#8B5CF6" strokeWidth="12" strokeDasharray="35.2 251.3" strokeDashoffset="-180.9" />
+                  <circle cx="50" cy="50" r="40" fill="transparent" stroke="#64748B" strokeWidth="12" strokeDasharray="35.2 251.3" strokeDashoffset="-216.1" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-2xl font-bold font-mono">{totalIncidents}</span>

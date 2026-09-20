@@ -16,13 +16,25 @@ export default function AppShell({ children }) {
   
   const location = useLocation();
   const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
-  const [date, setDate] = useState('Sat, 28 Sep 2024'); // Mocked to match design
+  
+  const formatDate = (d) => {
+    return d.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+  
+  const [date, setDate] = useState(formatDate(new Date()));
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
   useEffect(() => {
     const timer = setInterval(() => {
-      setTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+      const now = new Date();
+      setTime(now.toLocaleTimeString('en-US', { hour12: false }));
+      setDate(formatDate(now));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -133,7 +145,7 @@ export default function AppShell({ children }) {
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); }}
               >
                 <div className="w-8 h-8 rounded-full bg-[#1E2638] flex items-center justify-center text-white font-bold">A</div>
-                <span className="text-white text-sm font-semibold">Operator</span>
+                <span className="text-white text-sm font-semibold">Akshay Sharma</span>
                 <ChevronDown size={14} className="text-brand-muted" />
               </div>
               
@@ -151,7 +163,7 @@ export default function AppShell({ children }) {
                     Profile Settings
                   </Link>
                   <div 
-                    onClick={() => { alert('Shift Handover module not available in prototype.'); setShowProfile(false); }}
+                    onClick={() => { setShowProfile(false); }}
                     className="px-4 py-2 hover:bg-[#1E2638] cursor-pointer text-sm text-brand-muted hover:text-white transition-colors"
                   >
                     Change Shift

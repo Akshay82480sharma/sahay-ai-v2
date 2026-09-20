@@ -13,12 +13,34 @@ def _load_places() -> dict:
 
 places_cache = _load_places()
 
+import httpx
+
 def geocode_location(location_name: str) -> Optional[Tuple[float, float]]:
     """
-    Looks up a location name in vadodara_places.json (case-insensitive).
-    Returns (lat, lng) if found, else None.
+    Looks up a location name. First tries Google Maps Geocoding API if key is available.
+    Falls back to vadodara_places.json (case-insensitive) if API fails or key is missing.
     """
-    if not location_name or not places_cache:
+    if not location_name:
+        return None
+        
+    api_key = os.getenv("GOOGLE_MAPS_API_KEY")
+    if api_key:
+        try:
+            # Append Vadodara, Gujarat to improve accuracy
+            query = f"{location_name}, Vadodara, Gujarat, India"
+            # httpx handles urlencoding via params
+            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            response = httpx.get(url, params={"address": query, "key": api_key}, timeout=5.0)
+            data = response.json()
+            if data.get("status") == "OK" and len(data.get("results", [])) > 0:
+                location = data["results"][0]["geometry"]["location"]
+                return location["lat"], location["lng"]
+        except Exception as e:
+            print(f"Google Maps Geocoding failed: {e}")
+            pass
+            
+    # Fallback to local cache
+    if not places_cache:
         return None
         
     search_name = location_name.lower()

@@ -9,6 +9,29 @@ import { useIncidents } from '../hooks/useIncidents';
 import { useLiveData } from '../context/LiveDataProvider';
 import { Bell, Flame, AlertTriangle, Ambulance, Timer, BarChart2, Activity } from 'lucide-react';
 
+const getIncidentImage = (type, summary = '') => {
+  const t = (type || '').toLowerCase();
+  const s = (summary || '').toLowerCase();
+
+  if (t === 'fire' || s.includes('fire') || s.includes('blaze') || s.includes('burn') || s.includes('blast'))
+    return { url: 'https://images.unsplash.com/photo-1486551937199-baf066858de7?q=80&w=300&auto=format&fit=crop', alt: 'Fire' };
+  if (t === 'flood' || s.includes('flood') || s.includes('water') || s.includes('drown') || s.includes('submerge'))
+    return { url: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=300&auto=format&fit=crop', alt: 'Flood' };
+  if (t === 'medical' || s.includes('injur') || s.includes('heart') || s.includes('hospital') || s.includes('unconscious'))
+    return { url: 'https://images.unsplash.com/photo-1587745416684-47953f16f02f?q=80&w=300&auto=format&fit=crop', alt: 'Medical' };
+  if (t === 'accident' || s.includes('accident') || s.includes('collid') || s.includes('crash') || s.includes('overturn'))
+    return { url: 'https://images.unsplash.com/photo-1543465077-db45d34b88a5?q=80&w=300&auto=format&fit=crop', alt: 'Accident' };
+  if (t === 'structural' || s.includes('collaps') || s.includes('building') || s.includes('structur'))
+    return { url: 'https://images.unsplash.com/photo-1590004845684-e029d4156fdc?q=80&w=300&auto=format&fit=crop', alt: 'Structural' };
+  if (t === 'industrial' || s.includes('industrial') || s.includes('factory') || s.includes('chemical') || s.includes('gas leak') || s.includes('explosion'))
+    return { url: 'https://images.unsplash.com/photo-1611273426858-450d8e3c9fce?q=80&w=300&auto=format&fit=crop', alt: 'Industrial' };
+  if (s.includes('rescue') || s.includes('trap') || s.includes('strand'))
+    return { url: 'https://images.unsplash.com/photo-1606567595334-d39972c85dbe?q=80&w=300&auto=format&fit=crop', alt: 'Rescue' };
+  if (s.includes('storm') || s.includes('cyclone') || s.includes('wind') || s.includes('thunder'))
+    return { url: 'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?q=80&w=300&auto=format&fit=crop', alt: 'Storm' };
+  return { url: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?q=80&w=300&auto=format&fit=crop', alt: 'Emergency' };
+};
+
 export default function Dashboard() {
   const { incidents, setIncidents } = useIncidents();
   const [selectedIncident, setSelectedIncident] = useState(null);
@@ -281,7 +304,7 @@ export default function Dashboard() {
               <h4 className="text-sm font-bold text-white mb-2">Incident Location</h4>
               <div className="flex gap-2">
                 <div className="w-12 h-12 bg-[#1E2638] rounded shrink-0 overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1547683905-f686c993aae5?q=80&w=100&auto=format&fit=crop" className="w-full h-full object-cover" />
+                  <img src={getIncidentImage(selectedIncident.type, selectedIncident.summary).url} alt={getIncidentImage(selectedIncident.type, selectedIncident.summary).alt} className="w-full h-full object-cover" />
                 </div>
                 <div className="text-[10px] text-brand-muted flex flex-col justify-center">
                   <div className="text-white font-bold truncate w-28">{selectedIncident.location_name || 'Harni Lake Area'}</div>
