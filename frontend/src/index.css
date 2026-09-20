@@ -4,6 +4,21 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-panel selection:text-status-info;
   }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-brand-bg;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-brand-border rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-muted;
 }

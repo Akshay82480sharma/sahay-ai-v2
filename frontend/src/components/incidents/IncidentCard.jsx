@@ -1,33 +1,46 @@
 import React from 'react';
-import SeverityBadge from './SeverityBadge';
 import { timeAgo } from '../../utils/time';
 
-export default function IncidentCard({ incident }) {
-  return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="font-bold text-gray-900 capitalize">{incident.type || 'Unknown'}</h4>
-        <SeverityBadge severity={incident.severity || 1} />
-      </div>
-      <p className="text-sm text-gray-500 mb-2 truncate">{incident.summary || 'No summary available.'}</p>
-      
-      <div className="mb-2">
-        <span className={`text-xs font-bold px-2 py-1 rounded ${incident.score >= 80 ? 'bg-red-100 text-red-700' : incident.score >= 60 ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
-          Operational Score: {incident.score || 50}/100 ({incident.priority?.toUpperCase()})
-        </span>
-      </div>
+const getSeverityColor = (priority) => {
+  switch (priority?.toLowerCase()) {
+    case 'critical': return 'text-status-critical';
+    case 'high': return 'text-status-high';
+    case 'medium': return 'text-status-warning';
+    case 'low': return 'text-status-info';
+    default: return 'text-brand-muted';
+  }
+};
 
-      <div className="flex justify-between text-xs text-gray-400">
-        <span>{incident.location_name || `${incident.lat?.toFixed(4)}, ${incident.lng?.toFixed(4)}`}</span>
+const getSeverityDot = (priority) => {
+  switch (priority?.toLowerCase()) {
+    case 'critical': return '🔴';
+    case 'high': return '🟠';
+    case 'medium': return '🟡';
+    case 'low': return '🔵';
+    default: return '⚪';
+  }
+};
+
+export default function IncidentCard({ incident, onClick }) {
+  return (
+    <div 
+      onClick={onClick}
+      className="bg-brand-bg p-3 rounded border border-brand-border cursor-pointer hover:border-brand-muted transition-colors flex flex-col gap-1"
+    >
+      <div className="flex justify-between items-center text-sm font-mono tracking-wide">
         <div className="flex items-center gap-2">
-          <span>Reports: {incident.report_count}</span>
-          {incident.created_at && (
-            <>
-              <span>•</span>
-              <span>{timeAgo(incident.created_at)}</span>
-            </>
-          )}
+          <span>{getSeverityDot(incident.priority)}</span>
+          <span className={getSeverityColor(incident.priority)}>
+            #{incident.id.toString().padStart(4, '0')}
+          </span>
         </div>
+        <span className="text-brand-muted text-xs">{timeAgo(incident.created_at)}</span>
+      </div>
+      <div className="font-semibold text-brand-text capitalize mt-1">
+        {incident.type || 'Unknown'}
+      </div>
+      <div className="text-sm text-brand-muted truncate">
+        {incident.summary || 'No summary available.'}
       </div>
     </div>
   );

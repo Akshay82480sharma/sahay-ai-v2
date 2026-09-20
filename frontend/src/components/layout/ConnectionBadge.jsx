@@ -7,20 +7,20 @@ export default function ConnectionBadge() {
   const getStatusConfig = () => {
     switch (connectionStatus) {
       case 'open':
-        return { label: 'Live', color: 'bg-green-100 text-green-800', dot: 'bg-green-500' };
+        return { label: 'LIVE', textColor: 'text-status-success', dot: 'bg-status-success animate-pulse' };
       case 'connecting':
-        return { label: 'Connecting...', color: 'bg-yellow-100 text-yellow-800', dot: 'bg-yellow-500 animate-pulse' };
+        return { label: 'CONNECTING...', textColor: 'text-status-warning', dot: 'bg-status-warning animate-pulse' };
       case 'closed':
       default:
-        return { label: 'Offline', color: 'bg-red-100 text-red-800', dot: 'bg-red-500' };
+        return { label: 'OFFLINE', textColor: 'text-status-critical', dot: 'bg-status-critical' };
     }
   };
 
-  const { label, color, dot } = getStatusConfig();
+  const { label, textColor, dot } = getStatusConfig();
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium ${color}`}>
-      <span className={`w-2 h-2 rounded-full ${dot}`}></span>
+    <div className={`flex items-center gap-2 ${textColor}`}>
+      <div className={`w-2 h-2 rounded-full ${dot}`}></div>
       {label}
     </div>
   );

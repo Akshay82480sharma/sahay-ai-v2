@@ -57,8 +57,10 @@ Sahay AI is a **command-centre platform** that:
 - [x] **Alerts & escalation** — critical-unassigned, delayed-response, and no-update alerts with configurable thresholds
 - [x] **AI-generated summaries & recommendations** — natural-language incident summaries and dispatch explanations
 - [x] **Analytics** — emergency types, response delays, resource shortages, frequently affected areas (hotspot map)
-- [x] **Notifications** — mock SMS log (Twilio integration optional)
-- [x] **Scenario simulator** — one-click flood, factory fire, and road accident simulations for demo and testing
+- [x] **Notifications** — Twilio SMS integration and inbound webhooks for external status updates
+- [x] **Scenario simulator** — one-click flood simulations for demo and testing
+- [x] **Deterministic Emergency Score** — strict math-based operational score combining AI severity, corroboration, and complexity
+- [x] **Audit Logs & Timeline** — rigorous tracking of "who did what, when, and why" for every dispatch action
 
 ---
 
