@@ -28,6 +28,7 @@
 | 2026-09-19 17:05 IST | Akshay | Completed Phase A4 (Incident UI, Map, Intake) | Done | — |
 | 2026-09-19 21:40 IST | Akshay | Completed Phase B7 (Integration Bug Fixes) | Done | — |
 | 2026-09-20 14:30 IST | Akshay/AI | Added Multi-tier Gemini Router, Twilio SMS webhooks, Deterministic Emergency Score, and Database Audit Logs for Human-in-the-loop tracking | Present at Hackathon | — |
+| 2026-09-20 17:45 IST | Akshay/AI | **Frontend Overhaul:** Wired map filter buttons (All/Incidents/Units/Hospitals/Flood Zones/Road Closures) to LiveMap rendering. Connected Incidents page to live backend data with working tab filters (All/Active/Critical/High/Medium/Low/Resolved), search bar, and row-click navigation to Dashboard. Added heatwave & festival simulator scenarios. Fixed DispatchModal z-index layering over map elements. Wired Simulation Reset button to backend API. Added collision/stampede/heatwave keywords to classifier. Fixed IncidentDrawer JSX syntax error. Added `useNavigate` row-click on Incidents table. | Polish & demo prep | — |
 
 ---
 

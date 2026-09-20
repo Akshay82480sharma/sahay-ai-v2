@@ -58,9 +58,12 @@ Sahay AI is a **command-centre platform** that:
 - [x] **AI-generated summaries & recommendations** — natural-language incident summaries and dispatch explanations
 - [x] **Analytics** — emergency types, response delays, resource shortages, frequently affected areas (hotspot map)
 - [x] **Notifications** — Twilio SMS integration and inbound webhooks for external status updates
-- [x] **Scenario simulator** — one-click flood simulations for demo and testing
+- [x] **Scenario simulator** — one-click flood, fire, road accident, heatwave, and festival crowd simulations for demo and testing
 - [x] **Deterministic Emergency Score** — strict math-based operational score combining AI severity, corroboration, and complexity
 - [x] **Audit Logs & Timeline** — rigorous tracking of "who did what, when, and why" for every dispatch action
+- [x] **Interactive map filters** — toggle visibility of Incidents, Units, Hospitals, Flood Zones, and Road Closures on the live map
+- [x] **Live incidents table** — real-time filterable/searchable incident table with tab filters (All, Active, Critical, High, Medium, Low, Resolved)
+- [x] **CARTO dark basemap** — professional dark-themed map tiles for the command centre aesthetic
 
 ---
 
@@ -115,7 +118,7 @@ flowchart TB
         CAL["Calls"]:::plain
         SEN["Sensors"]:::plain
         FLD["Field teams"]:::plain
-        SIM["Scenario simulator<br/>flood · factory fire · road accident"]:::demo
+        SIM["Scenario simulator<br/>flood · fire · road accident<br/>heatwave · festival crowd"]:::demo
     end
 
     subgraph DOOR["1 · Front door: POST /reports"]
@@ -270,8 +273,8 @@ Paths are under `backend/app/` unless shown in full.
 | **Notifications** | Records alerts sent to personnel as a mock SMS log. Twilio is optional. | `services/notifications.py` |
 | **WebSocket hub** | Pushes `incident_created`, `incident_updated`, `assignment_updated`, `alert_created` and `resource_updated` to every open dashboard. | `services/events.py`, `routers/ws.py` |
 | **Analytics** | Incidents by type, average response time, resource shortages and hotspots. | `services/analytics.py`, `routers/analytics.py` |
-| **Scenario simulator** | Replays flood, factory-fire and road-accident scripts through the same front door as real reports, so the demo exercises the real pipeline. | `services/simulator.py`, `routers/simulate.py`, `data/scenarios/` |
-| **React dashboard** | Live map, incident list and detail, dispatch panel with the approval button, resource panel, alert feed and analytics. | `frontend/src/pages/Dashboard.jsx`, `frontend/src/components/` |
+| **Scenario simulator** | Replays flood, factory-fire, road-accident, heatwave and festival-crowd scripts through the same front door as real reports, so the demo exercises the real pipeline. | `services/simulator.py`, `routers/simulate.py`, `data/scenarios/` |
+| **React dashboard** | Live map with interactive layer filters (Incidents, Units, Hospitals, Flood Zones, Road Closures), incident list and detail drawer, dispatch panel with approval button, live incidents table with tab-based filtering and search, resource panel, alert feed and analytics. CARTO dark basemap. | `frontend/src/pages/Dashboard.jsx`, `frontend/src/pages/Incidents.jsx`, `frontend/src/components/` |
 | **Data layer** | Reports, incidents, resources, assignments, alerts and facilities. SQLite locally; PostgreSQL when deployed. Seeded with Vadodara units and facilities. | `core/database.py`, `models/`, `backend/scripts/seed.py` |
 
 ### Never dark
@@ -313,7 +316,7 @@ Each dependency that can fail has a local twin, so the demo survives a bad netwo
 | **Backend** | Python 3.11+, FastAPI, SQLAlchemy, WebSockets |
 | **Database** | SQLite (dev), PostgreSQL with PostGIS (optional production) |
 | **AI** | LLM API (Gemini / Claude) with keyword-based fallback classifier |
-| **Frontend** | React, Vite, Tailwind CSS, Leaflet or MapLibre GL |
+| **Frontend** | React, Vite, Tailwind CSS, Leaflet with CARTO dark basemap |
 | **Notifications** | Mock SMS log (Twilio integration optional) |
 
 ---
@@ -412,13 +415,15 @@ Or use the Swagger UI at `/docs` to fire the simulation endpoint.
 
 ## 🎬 Demo Walkthrough (Flood Scenario)
 
-1. **Trigger simulation** → `POST /simulate/flood` generates ~15 incoming reports (citizen, sensor, field team) across Vadodara.
+1. **Trigger simulation** → `POST /simulate/flood` generates ~16 incoming reports (citizen, sensor, field team) across Vadodara. Also available: `fire`, `road_accident`, `heatwave`, `festival`.
 2. **AI processes reports** → classifies each as `flood`, estimates severity, geo-locates, and detects duplicates.
-3. **Reports merge** → ~15 reports consolidate into ~3 distinct incidents with rising confidence scores.
-4. **Dashboard updates live** → incidents appear on the map, severity indicators light up, resource panel shows availability.
-5. **Dispatch recommendation** → operator clicks an incident, sees AI-recommended teams with reasoning, approves dispatch.
-6. **Delayed response alert** → one team doesn't go en-route within the threshold → escalation alert fires.
-7. **Analytics view** → charts show incident types, response times, resource usage, and hotspot areas.
+3. **Reports merge** → ~16 reports consolidate into ~3 distinct incidents with rising confidence scores.
+4. **Dashboard updates live** → incidents appear on the dark CARTO basemap, severity indicators light up, resource panel shows availability.
+5. **Map filtering** → operator toggles Incidents / Units / Hospitals / Flood Zones / Road Closures to focus on relevant layers.
+6. **Incidents table** → navigate to the Incidents page to see all incidents in a filterable/searchable table with real-time counts by severity.
+7. **Dispatch recommendation** → operator clicks an incident, sees AI-recommended teams with reasoning, approves dispatch.
+8. **Delayed response alert** → one team doesn't go en-route within the threshold → escalation alert fires.
+9. **Analytics view** → charts show incident types, response times, resource usage, and hotspot areas.
 
 ---
 
