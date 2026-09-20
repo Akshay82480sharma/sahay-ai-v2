@@ -84,6 +84,18 @@ def assign_resources(id: int, req: AssignRequest, db: Session = Depends(get_db))
     incident.status = IncidentStatus.dispatched.value
     incident.updated_at = now
     
+    # Audit log
+    from app.models.audit import AuditLog
+    audit = AuditLog(
+        incident_id=incident.id,
+        action="RESOURCE_DISPATCHED",
+        actor="HUMAN_OPERATOR",
+        details={
+            "resource_ids": req.resource_ids
+        }
+    )
+    db.add(audit)
+    
     db.commit()
     
     # Refresh to get IDs for events

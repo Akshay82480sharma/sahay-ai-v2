@@ -22,5 +22,6 @@ class Incident(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    reports = relationship("Report", back_populates="incident")
-    assignments = relationship("Assignment", back_populates="incident")
+    reports = relationship("Report", back_populates="incident", cascade="all, delete-orphan")
+    assignments = relationship("Assignment", back_populates="incident", cascade="all, delete-orphan")
+    audit_logs = relationship("AuditLog", back_populates="incident", cascade="all, delete-orphan")

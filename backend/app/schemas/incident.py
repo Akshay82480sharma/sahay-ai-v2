@@ -4,6 +4,7 @@ from app.schemas.common import UtcDatetime
 from app.models.enums import IncidentType, IncidentPriority, IncidentStatus
 from .report import ReportResponse
 from .assignment import AssignmentResponse
+from .audit import AuditLogResponse
 
 class RequiredResource(BaseModel):
     type: str
@@ -32,6 +33,7 @@ class IncidentListResponse(BaseModel):
 class IncidentDetailResponse(IncidentListResponse):
     reports: List[ReportResponse] = []
     assignments: List[AssignmentResponse] = []
+    audit_logs: List[AuditLogResponse] = []
 
     class Config:
         from_attributes = True

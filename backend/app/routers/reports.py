@@ -5,6 +5,7 @@ from app.schemas.report import ReportCreate, ReportResponse
 from app.schemas.incident import IncidentListResponse
 from app.models.report import Report
 from app.models.incident import Incident
+from app.models.audit import AuditLog
 from app.services.classifier import classify
 from app.services.events import broadcast_nowait
 from app.services.geocode import geocode_location
@@ -134,6 +135,22 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         incident_id=incident.id
     )
     db.add(report)
+    
+    # 3.5 Create Audit Log
+    action_type = "INCIDENT_CREATED" if is_new else "REPORT_MERGED"
+    details = {
+        "source": report_in.source,
+        "score": incident.score,
+        "confidence": incident.confidence
+    }
+    audit = AuditLog(
+        incident_id=incident.id,
+        action=action_type,
+        actor="AI_CLASSIFIER",
+        details=details
+    )
+    db.add(audit)
+    
     db.commit()
     db.refresh(incident)
     db.refresh(report)
