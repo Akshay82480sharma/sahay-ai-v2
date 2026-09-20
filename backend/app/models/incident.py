@@ -10,6 +10,7 @@ class Incident(Base):
     type = Column(String, nullable=False)
     severity = Column(Integer, nullable=False)
     priority = Column(String, nullable=False)
+    score = Column(Integer, nullable=False, default=50)
     status = Column(String, nullable=False, default="new")
     lat = Column(Float, nullable=True)
     lng = Column(Float, nullable=True)

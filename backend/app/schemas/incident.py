@@ -14,6 +14,7 @@ class IncidentListResponse(BaseModel):
     type: IncidentType
     severity: int
     priority: IncidentPriority
+    score: int
     status: IncidentStatus
     lat: Optional[float] = None
     lng: Optional[float] = None

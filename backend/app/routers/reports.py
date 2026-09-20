@@ -22,6 +22,27 @@ class ReportCreateResponse(BaseModel):
 
 MERGE_RADIUS_KM = 2.0
 
+def calculate_emergency_score(severity: int, report_count: int, req_res: list) -> tuple[int, str]:
+    # severity (1-5) -> 40% of score
+    # report_count (1-10+) -> 30% of score
+    # required_resources (0-5+) -> 30% of score
+    s_score = (severity / 5) * 40
+    r_score = min(report_count / 10, 1.0) * 30
+    c_score = min(len(req_res) / 4, 1.0) * 30
+    
+    total = int(s_score + r_score + c_score)
+    
+    if total >= 80:
+        priority = "critical"
+    elif total >= 60:
+        priority = "high"
+    elif total >= 40:
+        priority = "medium"
+    else:
+        priority = "low"
+        
+    return min(total, 100), priority
+
 @router.post("", response_model=ReportCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     # 1. Classify the report text
@@ -67,24 +88,37 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         if classification["severity"] > matched_incident.severity:
             matched_incident.severity = classification["severity"]
         
-        # Optionally append to summary if it's getting more critical, but for now just update timestamp
+        # Recalculate deterministic score
+        score, new_priority = calculate_emergency_score(
+            matched_incident.severity, 
+            matched_incident.report_count, 
+            matched_incident.required_resources or []
+        )
+        matched_incident.score = score
+        if matched_incident.priority != "critical":
+            matched_incident.priority = new_priority
+            
         matched_incident.updated_at = datetime.now(timezone.utc)
         incident = matched_incident
         is_new = False
     else:
+        req_res = classification.get("required_resources", [])
+        score, priority = calculate_emergency_score(classification["severity"], 1, req_res)
+        
         # Create new Incident
         incident = Incident(
             type=classification["type"],
             severity=classification["severity"],
-            priority=classification.get("priority", "low"),
+            priority=priority,
+            score=score,
             status="new",
             lat=lat,
             lng=lng,
             location_name=loc_name,
             summary=classification["summary"],
-            confidence=0.6, # Start lower since it's only 1 report
+            confidence=0.6,
             report_count=1,
-            required_resources=classification.get("required_resources", [])
+            required_resources=req_res
         )
         db.add(incident)
         db.flush() # Get incident.id
