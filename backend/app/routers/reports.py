@@ -13,6 +13,7 @@ from app.utils.geo import haversine_km
 from pydantic import BaseModel
 from datetime import datetime, timezone
 import logging
+from app.models.enums import Source
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -44,11 +45,17 @@ def calculate_emergency_score(severity: int, report_count: int, req_res: list) -
         
     return min(total, 100), priority
 
-@router.post("", response_model=ReportCreateResponse, status_code=status.HTTP_201_CREATED)
-def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
+def create_report_from_text(
+    db: Session, 
+    text: str, 
+    source: Source, 
+    lat: float | None = None, 
+    lng: float | None = None, 
+    location_name: str | None = None
+) -> tuple[Report, Incident]:
     # 1. Classify the report text
     try:
-        classification = classify(report_in.text, report_in.source)
+        classification = classify(text, source.value if isinstance(source, Source) else source)
     except Exception as e:
         logger.error(f"Classification failed completely: {e}")
         raise HTTPException(status_code=500, detail="Classification failed")
@@ -57,9 +64,7 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         pass
 
     # 1.5 Geocode if lat/lng are missing
-    lat = report_in.lat
-    lng = report_in.lng
-    loc_name = classification.get("location_name") or report_in.location_name
+    loc_name = classification.get("location_name") or location_name
     
     if (lat is None or lng is None) and loc_name:
         coords = geocode_location(loc_name)
@@ -127,8 +132,8 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     
     # 3. Create Report
     report = Report(
-        raw_text=report_in.text,
-        source=report_in.source,
+        raw_text=text,
+        source=source,
         lat=lat,
         lng=lng,
         language=classification.get("language"),
@@ -162,4 +167,16 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     else:
         broadcast_nowait("incident_updated", incident_dict)
     
+    return report, incident
+
+@router.post("", response_model=ReportCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
+    report, incident = create_report_from_text(
+        db=db,
+        text=report_in.text,
+        source=report_in.source,
+        lat=report_in.lat,
+        lng=report_in.lng,
+        location_name=report_in.location_name
+    )
     return {"report": report, "incident": incident}

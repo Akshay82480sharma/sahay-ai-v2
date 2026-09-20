@@ -36,7 +36,17 @@ def test_deduplication_flow(client, db_session):
     assert res2.json()["incident"]["report_count"] == 2
     assert res2.json()["incident"]["confidence"] == 0.75 # 0.6 + 0.15
     
-    # 3. Post a third report that is a DIFFERENT type (fire)
+def test_deduplication_different_type(client, db_session):
+    payload1 = {
+        "text": "Huge flood in Alkapuri!",
+        "source": "citizen",
+        "lat": 22.3,
+        "lng": 73.2,
+        "location_name": "Alkapuri"
+    }
+    res1 = client.post("/reports", json=payload1)
+    inc1_id = res1.json()["incident"]["id"]
+
     payload3 = {
         "text": "Huge fire in the building next door!",
         "source": "citizen",
@@ -48,12 +58,21 @@ def test_deduplication_flow(client, db_session):
     assert res3.status_code == 201
     inc3_id = res3.json()["incident"]["id"]
     
-    # Must be a new incident because it's a 'fire' not 'flood'
     assert inc3_id != inc1_id
     assert res3.json()["incident"]["type"] == "fire"
     assert res3.json()["incident"]["report_count"] == 1
-    
-    # 4. Post a fourth report that is a flood, but far away
+
+def test_deduplication_far_distance(client, db_session):
+    payload1 = {
+        "text": "Huge flood in Alkapuri!",
+        "source": "citizen",
+        "lat": 22.3,
+        "lng": 73.2,
+        "location_name": "Alkapuri"
+    }
+    res1 = client.post("/reports", json=payload1)
+    inc1_id = res1.json()["incident"]["id"]
+
     payload4 = {
         "text": "Flood in Gotri!",
         "source": "citizen",
@@ -65,7 +84,6 @@ def test_deduplication_flow(client, db_session):
     assert res4.status_code == 201
     inc4_id = res4.json()["incident"]["id"]
     
-    # Must be a new incident due to distance > 2km
     assert inc4_id != inc1_id
     assert res4.json()["incident"]["type"] == "flood"
     assert res4.json()["incident"]["report_count"] == 1
