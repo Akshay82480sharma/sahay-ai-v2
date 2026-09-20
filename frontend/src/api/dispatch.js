@@ -15,6 +15,12 @@ export async function assign(incidentId, resourceIds) {
   });
 }
 
+export async function resolve(incidentId) {
+  return fetchJson(`/incidents/${incidentId}/resolve`, {
+    method: 'POST',
+  });
+}
+
 export async function updateAssignment(assignmentId, status) {
   return fetchJson(`/assignments/${assignmentId}`, {
     method: 'PATCH',

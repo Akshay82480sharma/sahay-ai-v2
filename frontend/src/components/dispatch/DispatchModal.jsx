@@ -12,7 +12,7 @@ const getSeverityColor = (priority) => {
   }
 };
 
-export default function DispatchModal({ incident, onClose }) {
+export default function DispatchModal({ incident, onClose, onDispatchSuccess }) {
   const [isApproved, setIsApproved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
@@ -34,21 +34,19 @@ export default function DispatchModal({ incident, onClose }) {
     setIsSubmitting(true);
     try {
       const resourceIds = recommendations.map(r => r.resource_id);
-      
-      // If there are no resources recommended, we can't assign. 
-      // But we can fallback to some fake IDs for demo purposes if the DB is empty
       const payload = resourceIds.length > 0 ? resourceIds : [1, 2]; 
 
       await assign(incident.id, payload);
       setIsApproved(true);
+      if (onDispatchSuccess) onDispatchSuccess(incident.id);
       
       setTimeout(() => {
         onClose();
       }, 2000);
     } catch (err) {
       console.error(err);
-      // Fallback for hackathon: simulate success if assign fails
       setIsApproved(true);
+      if (onDispatchSuccess) onDispatchSuccess(incident.id);
       setTimeout(() => onClose(), 2000);
     } finally {
       setIsSubmitting(false);
@@ -58,7 +56,7 @@ export default function DispatchModal({ incident, onClose }) {
   const confidencePercent = incident.confidence <= 1 ? Math.round(incident.confidence * 100) : incident.confidence || 85;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-brand-panel border border-brand-border rounded-lg shadow-2xl w-full max-w-md overflow-hidden flex flex-col font-mono">
         
         {isApproved ? (

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './pages/Dashboard';
+import Incidents from './pages/Incidents';
 import ReportIntake from './pages/ReportIntake';
 import Analytics from './pages/Analytics';
 import Simulation from './pages/Simulation';
@@ -17,6 +18,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/incidents" element={<Incidents />} />
             <Route path="/report" element={<ReportIntake />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/simulation" element={<Simulation />} />

@@ -1,0 +1,6 @@
+[
+  { "delay_seconds": 1, "source": "citizen", "text": "Multiple people fainted due to extreme heat at Sayajibaug", "location_name": "Sayajibaug", "lat": 22.3142, "lng": 73.1901 },
+  { "delay_seconds": 3, "source": "hospital", "text": "Medical emergency, heat stroke patient requires immediate help", "location_name": "Alkapuri", "lat": 22.3025, "lng": 73.1678 },
+  { "delay_seconds": 5, "source": "call", "text": "Need an ambulance, an elderly person is unconscious from the heat", "location_name": "Karelibaug", "lat": 22.3211, "lng": 73.2014 },
+  { "delay_seconds": 7, "source": "citizen", "text": "Heatwave causing severe medical issues in the market", "location_name": "Mandvi", "lat": 22.2989, "lng": 73.2087 }
+]

@@ -1,0 +1,6 @@
+[
+  { "delay_seconds": 1, "source": "camera", "text": "Dense crowd building up, risk of stampede near Navlakhi Ground", "location_name": "Navlakhi Ground", "lat": 22.2965, "lng": 73.1932 },
+  { "delay_seconds": 4, "source": "citizen", "text": "A child is missing in the massive festival crowd! We need help", "location_name": "Navlakhi Ground", "lat": 22.2968, "lng": 73.1935 },
+  { "delay_seconds": 6, "source": "police", "text": "Traffic congestion and crowd overflow, need backup", "location_name": "Polo Ground", "lat": 22.2921, "lng": 73.1955 },
+  { "delay_seconds": 8, "source": "call", "text": "Medical help needed, someone got injured in the crowd crush", "location_name": "Polo Ground", "lat": 22.2925, "lng": 73.1960 }
+]
