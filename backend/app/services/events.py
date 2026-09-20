@@ -21,7 +21,10 @@ from typing import Any
 from fastapi import WebSocket
 from fastapi.encoders import jsonable_encoder
 
+import os
+
 logger = logging.getLogger(__name__)
+WS_MAX_CONNECTIONS = int(os.environ.get("WS_MAX_CONNECTIONS", "100"))
 
 
 class ConnectionManager:
@@ -33,6 +36,11 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket) -> None:
         """Accept and register a new WebSocket client."""
         await websocket.accept()
+        if len(self._connections) >= WS_MAX_CONNECTIONS:
+            await websocket.close(code=1013)
+            logger.warning("Rejected WebSocket connection: limit of %d reached", WS_MAX_CONNECTIONS)
+            return
+            
         self._connections.append(websocket)
         if len(self._connections) == 1:
             self.loop = asyncio.get_running_loop()
