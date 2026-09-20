@@ -325,33 +325,170 @@ Each dependency that can fail has a local twin, so the demo survives a bad netwo
 
 ```
 sahay-ai/
-├── backend/                # Python + FastAPI
+├── backend/                        # Python + FastAPI
 │   ├── app/
-│   │   ├── main.py         # FastAPI app entry point
-│   │   ├── models/         # SQLAlchemy models
-│   │   ├── routers/        # API route handlers
-│   │   ├── services/       # AI pipeline, dispatcher, alerts
-│   │   ├── schemas/        # Pydantic request/response schemas
-│   │   └── core/           # Config, database, dependencies
-│   ├── requirements.txt
-│   └── tests/
-├── frontend/               # React + Vite
+│   │   ├── main.py                 # FastAPI app entry point
+│   │   ├── core/
+│   │   │   ├── config.py           # Settings & environment
+│   │   │   ├── database.py         # SQLAlchemy engine & session
+│   │   │   └── errors.py           # Global exception handlers
+│   │   ├── models/
+│   │   │   ├── alert.py            # Alert model
+│   │   │   ├── assignment.py       # Assignment model
+│   │   │   ├── audit.py            # Audit log model
+│   │   │   ├── enums.py            # Shared enums
+│   │   │   ├── facility.py         # Facility model (hospitals, shelters)
+│   │   │   ├── incident.py         # Incident model
+│   │   │   ├── report.py           # Report model
+│   │   │   └── resource.py         # Resource model (units)
+│   │   ├── routers/
+│   │   │   ├── alerts.py           # GET /alerts
+│   │   │   ├── analytics.py        # GET /analytics/summary
+│   │   │   ├── assignments.py      # Assignment CRUD
+│   │   │   ├── dispatch.py         # POST /incidents/{id}/recommend & assign
+│   │   │   ├── facilities.py       # Facility endpoints
+│   │   │   ├── health.py           # GET /health
+│   │   │   ├── incidents.py        # Incident CRUD
+│   │   │   ├── reports.py          # POST /reports (ingestion)
+│   │   │   ├── resources.py        # Resource CRUD
+│   │   │   ├── simulate.py         # POST /simulate/{scenario}
+│   │   │   ├── webhooks.py         # Inbound webhook handlers
+│   │   │   └── ws.py               # WebSocket /ws/live
+│   │   ├── schemas/                # Pydantic request/response schemas
+│   │   ├── services/
+│   │   │   ├── alerts.py           # Alert engine (critical, delayed, escalation)
+│   │   │   ├── classifier.py       # AI classification with LLM fallback
+│   │   │   ├── dedupe.py           # Spatial deduplication
+│   │   │   ├── dispatcher.py       # Resource recommendation & assignment
+│   │   │   ├── events.py           # WebSocket event broadcasting
+│   │   │   ├── geocode.py          # Vadodara gazetteer lookup
+│   │   │   ├── keyword_rules.py    # Fallback keyword classifier (EN/GU/Hinglish)
+│   │   │   ├── language.py         # Language detection
+│   │   │   ├── notifications.py    # SMS notifications (mock + Twilio)
+│   │   │   ├── simulator.py        # Scenario replay engine
+│   │   │   └── llm/
+│   │   │       ├── base.py         # LLM provider interface
+│   │   │       ├── gemini.py       # Multi-tier Gemini router
+│   │   │       └── mock.py         # Mock LLM for offline dev
+│   │   ├── data/
+│   │   │   ├── vadodara_places.json    # Local gazetteer
+│   │   │   ├── seed_resources.json     # Seed units (ambulances, fire engines, etc.)
+│   │   │   ├── seed_facilities.json    # Seed facilities (hospitals, shelters)
+│   │   │   └── scenarios/
+│   │   │       ├── flood.json          # 16 reports across Vadodara
+│   │   │       ├── factory_fire.json   # Industrial fire scenario
+│   │   │       ├── road_accident.json  # Highway collision scenario
+│   │   │       ├── heatwave.json       # Heat emergency scenario
+│   │   │       └── festival.json       # Festival crowd scenario
+│   │   └── utils/
+│   │       ├── geo.py              # Haversine distance
+│   │       └── timeutil.py         # Time helpers
+│   ├── scripts/
+│   │   └── seed.py                 # Database seeder
+│   ├── tests/                      # Pytest test suite
+│   └── requirements.txt
+├── frontend/                       # React + Vite
 │   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Dashboard, Analytics, etc.
-│   │   ├── hooks/          # Custom React hooks (WebSocket, etc.)
-│   │   ├── services/       # API client
-│   │   └── utils/          # Helpers
+│   │   ├── App.jsx                 # Router setup
+│   │   ├── main.jsx                # React entry point
+│   │   ├── index.css               # Tailwind base styles
+│   │   ├── api/                    # API client modules
+│   │   │   ├── client.js           # Axios base client
+│   │   │   ├── incidents.js        # Incident API calls
+│   │   │   ├── dispatch.js         # Dispatch recommend/assign
+│   │   │   ├── reports.js          # Report submission
+│   │   │   ├── resources.js        # Resource queries
+│   │   │   ├── alerts.js           # Alert queries
+│   │   │   ├── analytics.js        # Analytics queries
+│   │   │   ├── simulate.js         # Simulator trigger
+│   │   │   └── health.js           # Health check
+│   │   ├── components/
+│   │   │   ├── layout/
+│   │   │   │   ├── AppShell.jsx    # Main layout (sidebar + topbar + content)
+│   │   │   │   ├── Sidebar.jsx     # Left navigation sidebar
+│   │   │   │   ├── TopBar.jsx      # Top navigation bar
+│   │   │   │   └── ConnectionBadge.jsx  # WebSocket status indicator
+│   │   │   ├── map/
+│   │   │   │   ├── LiveMap.jsx     # Leaflet map with CARTO dark tiles
+│   │   │   │   ├── IncidentMarker.jsx
+│   │   │   │   ├── ResourceMarker.jsx
+│   │   │   │   ├── FacilityMarker.jsx
+│   │   │   │   ├── HotspotLayer.jsx
+│   │   │   │   └── MapLegend.jsx
+│   │   │   ├── incidents/
+│   │   │   │   ├── IncidentList.jsx      # Scrollable incident list
+│   │   │   │   ├── IncidentDrawer.jsx    # Detail drawer with AI assessment
+│   │   │   │   ├── IncidentCard.jsx
+│   │   │   │   ├── IncidentDetail.jsx
+│   │   │   │   ├── UnitTrackingPanel.jsx # Live unit route tracking
+│   │   │   │   ├── PriorityBadge.jsx
+│   │   │   │   ├── SeverityBadge.jsx
+│   │   │   │   ├── StatusChip.jsx
+│   │   │   │   ├── ConfidenceMeter.jsx
+│   │   │   │   └── ReportTimeline.jsx
+│   │   │   ├── dispatch/
+│   │   │   │   ├── DispatchModal.jsx     # Dispatch approval modal
+│   │   │   │   ├── DispatchPanel.jsx
+│   │   │   │   ├── RecommendationPanel.jsx
+│   │   │   │   ├── RecommendationCard.jsx
+│   │   │   │   ├── ApproveDispatch.jsx
+│   │   │   │   ├── AssignmentTracker.jsx
+│   │   │   │   └── MutualAidBanner.jsx
+│   │   │   ├── alerts/
+│   │   │   │   ├── AlertFeed.jsx
+│   │   │   │   ├── AlertItem.jsx
+│   │   │   │   └── AcknowledgeButton.jsx
+│   │   │   ├── analytics/
+│   │   │   │   ├── IncidentTypeChart.jsx
+│   │   │   │   ├── StatusCountsChart.jsx
+│   │   │   │   └── ShortageTable.jsx
+│   │   │   ├── resources/
+│   │   │   │   ├── ResourcePanel.jsx
+│   │   │   │   ├── ResourceRow.jsx
+│   │   │   │   └── StatusDot.jsx
+│   │   │   ├── simulate/
+│   │   │   │   ├── ScenarioLauncher.jsx
+│   │   │   │   └── ResetButton.jsx
+│   │   │   └── common/
+│   │   │       ├── ErrorBoundary.jsx
+│   │   │       ├── LoadingSpinner.jsx
+│   │   │       ├── EmptyState.jsx
+│   │   │       └── Toast.jsx
+│   │   ├── pages/
+│   │   │   ├── Dashboard.jsx       # Main command centre (map + metrics + panels)
+│   │   │   ├── Incidents.jsx       # Filterable incidents table
+│   │   │   ├── Resources.jsx       # Resource management
+│   │   │   ├── Analytics.jsx       # Charts and hotspot map
+│   │   │   ├── Simulation.jsx      # Scenario launcher UI
+│   │   │   ├── Settings.jsx        # System settings
+│   │   │   └── ReportIntake.jsx    # Manual report submission
+│   │   ├── hooks/
+│   │   │   ├── useIncidents.js     # Real-time incidents via WebSocket
+│   │   │   ├── useWebSocket.js     # WebSocket connection manager
+│   │   │   ├── useAlerts.js        # Alert polling
+│   │   │   ├── useResources.js     # Resource queries
+│   │   │   ├── useHealth.js        # Health check
+│   │   │   └── useIncidentDetail.js
+│   │   ├── context/
+│   │   │   └── LiveDataProvider.jsx # WebSocket context provider
+│   │   ├── constants/
+│   │   │   └── enums.js            # Shared frontend enums
+│   │   └── utils/
+│   │       ├── format.js           # Display formatters
+│   │       ├── geo.js              # Geo utilities
+│   │       └── time.js             # Time helpers
 │   ├── package.json
 │   └── vite.config.js
-├── .env.example            # Environment variable template
+├── docs/                           # Documentation assets
+├── .env.example                    # Environment variable template
 ├── .gitignore
-├── API_SPEC.md             # API contract (source of truth)
-├── CLAUDE.md               # AI coding-tool rules
-├── AGENTS.md               # Quick-reference AI rules
-├── PROGRESS.md             # Development log
-├── README.md               # ← You are here
-└── LICENSE                 # MIT
+├── API_SPEC.md                     # API contract (source of truth)
+├── CLAUDE.md                       # AI coding-tool rules
+├── AGENTS.md                       # Quick-reference AI rules
+├── DESIGN.md                       # Design decisions
+├── PROGRESS.md                     # Development log
+├── README.md                       # ← You are here
+└── LICENSE                         # MIT
 ```
 
 ---
