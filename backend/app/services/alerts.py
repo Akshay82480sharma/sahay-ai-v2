@@ -11,7 +11,7 @@ from app.models.resource import Resource
 from app.models.alert import Alert
 from app.models.enums import IncidentStatus, IncidentPriority, AssignmentStatus, ResourceStatus
 from app.services.events import broadcast_nowait
-from app.services.notifications import send_notification
+from app.services.notifications import notify_alert
 from app.utils.timeutil import format_iso8601_z
 
 logger = logging.getLogger(__name__)
@@ -120,11 +120,15 @@ async def alert_loop(session_factory, interval=10):
                         "acknowledged": alert.acknowledged,
                         "created_at": format_iso8601_z(alert.created_at)
                     }
-                    broadcast_nowait("alert_created", a_dict)
-                    
-                    # send notification
-                    admin_phone = os.environ.get("ADMIN_PHONE", "+1234567890")
-                    send_notification(admin_phone, f"ALERT: {alert.message}")
+                    try:
+                        broadcast_nowait("alert_created", a_dict)
+                    except Exception as e:
+                        logger.error(f"Error broadcasting alert {alert.id}: {e}")
+                        
+                    try:
+                        await asyncio.to_thread(notify_alert, alert)
+                    except Exception as e:
+                        logger.error(f"Error notifying for alert {alert.id}: {e}")
             except Exception as e:
                 logger.error(f"Error in alert loop: {e}")
             finally:

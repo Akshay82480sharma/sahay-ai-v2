@@ -83,3 +83,77 @@ def test_alerts_logic(db_session):
     # Since all alerts were acknowledged, no new escalations.
     # The incident delayed alert was already created, no duplicate.
     assert len(alerts_after_ack) == 0
+
+import asyncio
+from app.services.alerts import alert_loop
+from unittest.mock import MagicMock
+
+@pytest.mark.asyncio
+async def test_alert_loop_integration(db_session, monkeypatch):
+    now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
+    inc = Incident(type='flood', severity=5, priority=IncidentPriority.critical.value, status=IncidentStatus.new.value, lat=0.0, lng=0.0, location_name='Test', summary='Test', confidence=1.0, report_count=1, created_at=now, updated_at=now)
+    db_session.add(inc)
+    db_session.commit()
+    
+    mock_notify = MagicMock()
+    monkeypatch.setattr('app.services.alerts.notify_alert', mock_notify)
+    mock_broadcast = MagicMock()
+    monkeypatch.setattr('app.services.alerts.broadcast_nowait', mock_broadcast)
+    
+    # Make datetime.now return a time that triggers an alert
+    class MockDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now + timedelta(seconds=121)
+    monkeypatch.setattr('app.services.alerts.datetime', MockDatetime)
+    
+    # Run the loop briefly
+    task = asyncio.create_task(alert_loop(lambda: db_session, interval=0.1))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    
+    assert mock_notify.call_count == 1
+    assert mock_broadcast.call_count == 1
+    
+    # Now acknowledge the alert
+    alert = db_session.query(Alert).first()
+    alert.acknowledged = True
+    db_session.commit()
+    
+    # reset mocks
+    mock_notify.reset_mock()
+    mock_broadcast.reset_mock()
+    
+    # Run loop again, no new alerts
+    task = asyncio.create_task(alert_loop(lambda: db_session, interval=0.1))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    
+    assert mock_notify.call_count == 0
+    assert mock_broadcast.call_count == 0
+    
+    # Test exception in notifier doesn't crash the loop
+    mock_notify.side_effect = Exception('boom')
+    # We need a new alert to trigger the notifier again
+    db_session.delete(alert)
+    db_session.commit()
+    
+    task = asyncio.create_task(alert_loop(lambda: db_session, interval=0.1))
+    await asyncio.sleep(0.2)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+    
+    assert mock_notify.call_count > 0
+    assert mock_broadcast.call_count > 0
+

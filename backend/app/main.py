@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.core.errors import register_exception_handlers
-from app.routers import health, ws, dispatch, assignments, facilities, resources, reports, incidents, simulate, alerts, analytics
+from app.routers import health, ws, dispatch, assignments, facilities, resources, reports, incidents, simulate, alerts, analytics, webhooks
 import app.models  # Ensures models are registered before create_all
 from contextlib import asynccontextmanager
 import asyncio
@@ -62,3 +62,4 @@ app.include_router(resources.router)
 app.include_router(simulate.router)
 app.include_router(alerts.router)
 app.include_router(analytics.router)
+app.include_router(webhooks.router)
