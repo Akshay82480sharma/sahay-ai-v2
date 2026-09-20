@@ -30,3 +30,26 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Project Structure
+
+Sahay AI uses a highly modular, decoupled architecture:
+
+`	ext
+sahay-ai/
+├── backend/                  # FastAPI Application
+│   ├── app/
+│   │   ├── core/             # Configuration & Database logic
+│   │   ├── models/           # SQLAlchemy ORM definitions
+│   │   ├── routers/          # API & WebSocket endpoints
+│   │   ├── schemas/          # Pydantic data validation
+│   │   └── services/         # Business logic & LLM integrations
+│   └── tests/                # 50+ Pytest automated backend tests
+├── frontend/                 # React + Vite Application
+│   └── src/
+│       ├── api/              # Decoupled fetch/REST clients
+│       ├── components/       # Feature-specific UI modules (dispatch, map, alerts)
+│       ├── context/          # Global React state
+│       └── hooks/            # Custom hooks & WebSocket subscriptions
+└── docs/                     # Architecture & Specification blueprints
+`
