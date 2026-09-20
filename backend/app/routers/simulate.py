@@ -1,11 +1,19 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Header
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.services.simulator import reset_simulation, run_scenario_background, set_current_sim
 import os
 import json
 
-router = APIRouter(prefix="/simulate", tags=["Simulator"])
+def verify_simulator_access(admin_token: str = Header(...)):
+    if os.environ.get("SIMULATOR_ENABLED", "false").lower() != "true":
+        raise HTTPException(status_code=403, detail="Simulator is disabled.")
+    
+    expected_token = os.environ.get("ADMIN_TOKEN")
+    if not expected_token or admin_token != expected_token:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+router = APIRouter(prefix="/simulate", tags=["Simulator"], dependencies=[Depends(verify_simulator_access)])
 
 @router.post("/reset")
 def reset(db: Session = Depends(get_db)):
