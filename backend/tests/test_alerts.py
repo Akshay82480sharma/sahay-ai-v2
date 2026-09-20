@@ -157,3 +157,76 @@ async def test_alert_loop_integration(db_session, monkeypatch):
     assert mock_notify.call_count > 0
     assert mock_broadcast.call_count > 0
 
+from app.models.assignment import Assignment
+from app.models.enums import AssignmentStatus
+from app.services.alerts import (
+    ALERT_CRITICAL_UNASSIGNED_SECONDS,
+    ALERT_NOT_EN_ROUTE_SECONDS,
+    ALERT_NO_UPDATE_SECONDS
+)
+
+def test_alert_threshold_boundaries(db_session):
+    # Test boundary of 3 critical thresholds
+    now = datetime(2026, 9, 19, 12, 0, 0, tzinfo=timezone.utc)
+    
+    # 1. Critical Unassigned
+    inc_unassigned = Incident(
+        type="flood", severity=5, priority=IncidentPriority.critical.value,
+        status=IncidentStatus.new.value, lat=0.0, lng=0.0, location_name="Test",
+        summary="Test", confidence=1.0, report_count=1, created_at=now, updated_at=now
+    )
+    
+    # 2. Not En Route (Dispatched)
+    inc_dispatched = Incident(
+        type="flood", severity=5, priority=IncidentPriority.medium.value,
+        status=IncidentStatus.dispatched.value, lat=0.0, lng=0.0, location_name="Test",
+        summary="Test", confidence=1.0, report_count=1, created_at=now, updated_at=now
+    )
+    db_session.add(inc_unassigned)
+    db_session.add(inc_dispatched)
+    db_session.commit()
+    
+    assign = Assignment(
+        incident_id=inc_dispatched.id, resource_id=1,
+        status=AssignmentStatus.dispatched.value,
+        dispatched_at=now
+    )
+    db_session.add(assign)
+    db_session.commit()
+    
+    # At exact threshold - no alerts should fire
+    # unassigned threshold
+    run_now = now + timedelta(seconds=ALERT_CRITICAL_UNASSIGNED_SECONDS)
+    alerts = run_checks(db_session, run_now)
+    assert len(alerts) == 0, "No alerts at exact unassigned threshold"
+    
+    # at threshold + 1 -> should fire unassigned
+    run_now = now + timedelta(seconds=ALERT_CRITICAL_UNASSIGNED_SECONDS + 1)
+    alerts = run_checks(db_session, run_now)
+    # Check that "critical" alert is there for inc_unassigned
+    assert len([a for a in alerts if a.incident_id == inc_unassigned.id and a.kind == "critical"]) == 1
+    
+    # 2. Not En-Route threshold
+    run_now = now + timedelta(seconds=ALERT_NOT_EN_ROUTE_SECONDS)
+    # This also hits No update threshold if ALERT_NO_UPDATE_SECONDS was smaller, but it's 300.
+    alerts = run_checks(db_session, run_now)
+    # The first run_checks already created the unassigned alert, so new_alerts won't have it again
+    assert len([a for a in alerts if a.incident_id == inc_dispatched.id and a.kind == "delayed"]) == 0
+    
+    # at threshold + 1 -> should fire not en-route
+    run_now = now + timedelta(seconds=ALERT_NOT_EN_ROUTE_SECONDS + 1)
+    alerts = run_checks(db_session, run_now)
+    assert len([a for a in alerts if a.incident_id == inc_dispatched.id and a.kind == "delayed"]) == 1
+    
+    # 3. No Update threshold
+    # Wait, the previous runs might have triggered it if we didn't update updated_at. But No Update is 300s.
+    run_now = now + timedelta(seconds=ALERT_NO_UPDATE_SECONDS)
+    alerts = run_checks(db_session, run_now)
+    assert len([a for a in alerts if a.kind == "delayed" and "no updates" in a.message]) == 0
+    
+    # at threshold + 1 -> should fire no update
+    run_now = now + timedelta(seconds=ALERT_NO_UPDATE_SECONDS + 1)
+    alerts = run_checks(db_session, run_now)
+    # Should fire for BOTH incidents, as neither was updated
+    delayed_alerts = [a for a in alerts if a.kind == "delayed" and "no updates" in a.message]
+    assert len(delayed_alerts) == 2
