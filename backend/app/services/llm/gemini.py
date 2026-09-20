@@ -5,6 +5,7 @@ import json
 import logging
 from typing import Dict, Any
 from app.services.llm import LLMProvider
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +13,13 @@ logger = logging.getLogger(__name__)
 GEMINI_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"] # Using real available models for 2026/now
 LLM_TIMEOUT = 5.0
 COOLDOWN_SECONDS = 60
+CACHE_MAX_SIZE = 500
 
 class GeminiProvider(LLMProvider):
     def __init__(self):
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.cache = {}
+        self.cache = OrderedDict()
+        
         self.cooldowns = {model: 0.0 for model in GEMINI_MODELS}
         
         if not self.api_key or self.api_key == "your_key_here":
@@ -29,6 +32,7 @@ class GeminiProvider(LLMProvider):
         # 1. Cache hit?
         cache_key = f"{source}:{text}"
         if cache_key in self.cache:
+            self.cache.move_to_end(cache_key) # Mark as recently used
             return self.cache[cache_key]
 
         prompt = f"""
@@ -59,7 +63,9 @@ class GeminiProvider(LLMProvider):
         }
 
         # 2. Iterate through tiers
-        for model in GEMINI_MODELS:
+        models_to_try = [os.environ.get("GEMINI_MODEL")] if os.environ.get("GEMINI_MODEL") else GEMINI_MODELS
+        
+        for model in models_to_try:
             # Skip if cooling down
             if time.time() < self.cooldowns.get(model, 0):
                 continue
@@ -91,6 +97,8 @@ class GeminiProvider(LLMProvider):
                 
                 # Cache and return
                 self.cache[cache_key] = result
+                if len(self.cache) > CACHE_MAX_SIZE:
+                    self.cache.popitem(last=False) # Remove oldest
                 return result
                 
             except httpx.TimeoutException:
