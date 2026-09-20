@@ -40,9 +40,13 @@ def client(db_session):
     yield TestClient(app)
     del app.dependency_overrides[get_db]
 
-def test_simulate_flood_and_reset(client, db_session):
+def test_simulate_flood_and_reset(client, db_session, monkeypatch):
+    monkeypatch.setenv("SIMULATOR_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_TOKEN", "test_admin")
+    headers = {"admin-token": "test_admin"}
+    
     # Ensure starting clean
-    client.post("/simulate/reset")
+    client.post("/simulate/reset", headers=headers)
     
     assert db_session.query(Report).count() == 0
     assert db_session.query(Incident).count() == 0
@@ -50,7 +54,7 @@ def test_simulate_flood_and_reset(client, db_session):
     # We will mock httpx.AsyncClient.post so it directly calls our TestClient!
     async def mock_post(self, url, *args, json=None, **kwargs):
         # Call the local test client
-        resp = client.post(url, json=json)
+        resp = client.post(url, json=json, headers=headers)
         # Mock httpx response enough to pass resp.raise_for_status()
         mock_resp = AsyncMock()
         mock_resp.status_code = resp.status_code
@@ -59,7 +63,7 @@ def test_simulate_flood_and_reset(client, db_session):
 
     with patch("httpx.AsyncClient.post", new=mock_post):
         # Run simulation at extremely high speed
-        resp = client.post("/simulate/flood?speed=1000.0")
+        resp = client.post("/simulate/flood?speed=1000.0", headers=headers)
         assert resp.status_code == 200
         
         # TestClient runs BackgroundTasks synchronously, so by the time 
@@ -70,11 +74,29 @@ def test_simulate_flood_and_reset(client, db_session):
         assert reports_count == 16, f"Expected 16 reports, got {reports_count}"
         
         # TODO: tighten this assertion to about 3 incidents once dedupe lands
-        assert incidents_count > 0, "Expected incidents to be generated"
+        assert incidents_count == 3, f"Expected 3 incidents, got {incidents_count}"
         
     # Reset
-    resp = client.post("/simulate/reset")
+    resp = client.post("/simulate/reset", headers=headers)
     assert resp.status_code == 200
     
     assert db_session.query(Report).count() == 0
     assert db_session.query(Incident).count() == 0
+
+def test_simulate_unauthorized(client, monkeypatch):
+    monkeypatch.setenv("SIMULATOR_ENABLED", "true")
+    monkeypatch.setenv("ADMIN_TOKEN", "test_admin")
+    
+    # Missing token -> 422 Unprocessable Entity (because Header is required)
+    # Wait, FastAPI might return 422 if header is missing. Let's check without token.
+    resp = client.post("/simulate/start")
+    assert resp.status_code == 422
+    
+    # Wrong token -> 401
+    resp = client.post("/simulate/start", headers={"admin-token": "wrong_token"})
+    assert resp.status_code == 401
+    
+    # Disabled -> 403
+    monkeypatch.setenv("SIMULATOR_ENABLED", "false")
+    resp = client.post("/simulate/start", headers={"admin-token": "test_admin"})
+    assert resp.status_code == 403

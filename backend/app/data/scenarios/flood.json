@@ -1,21 +1,21 @@
 [
   { "delay_seconds": 1, "source": "citizen", "text": "Alkapuri underpass is flooded, cars are stuck", "location_name": "Alkapuri", "lat": 22.3040, "lng": 73.1666 },
   { "delay_seconds": 2, "source": "call", "text": "અલકાપુરી ગરનાળામાં પાણી ભરાયા છે", "location_name": "Alkapuri", "lat": 22.3042, "lng": 73.1668 },
-  { "delay_seconds": 3, "source": "sensor", "text": "Water level 1.5m at Alkapuri station", "location_name": "Alkapuri", "lat": 22.3040, "lng": 73.1666 },
-  { "delay_seconds": 4, "source": "citizen", "text": "Bohot pani bhar gaya hai Alkapuri me", "location_name": "Alkapuri", "lat": 22.3045, "lng": 73.1662 },
+  { "delay_seconds": 3, "source": "sensor", "text": "water level 1.5m at Alkapuri station", "location_name": "Alkapuri", "lat": 22.3040, "lng": 73.1666 },
+  { "delay_seconds": 4, "source": "citizen", "text": "Bohot paani bhar gaya hai Alkapuri me", "location_name": "Alkapuri", "lat": 22.3045, "lng": 73.1662 },
   { "delay_seconds": 5, "source": "field", "text": "Confirming severe waterlogging in Alkapuri, 3 vehicles submerged", "location_name": "Alkapuri", "lat": 22.3038, "lng": 73.1670 },
   
-  { "delay_seconds": 7, "source": "citizen", "text": "Fatehgunj main road pe pani aa gaya", "location_name": "Fatehgunj", "lat": 22.3193, "lng": 73.1892 },
-  { "delay_seconds": 8, "source": "citizen", "text": "Water entering shops in Fatehgunj circle", "location_name": "Fatehgunj", "lat": 22.3195, "lng": 73.1895 },
+  { "delay_seconds": 7, "source": "citizen", "text": "Fatehgunj main road pe paani aa gaya", "location_name": "Fatehgunj", "lat": 22.3193, "lng": 73.1892 },
+  { "delay_seconds": 8, "source": "citizen", "text": "water entering shops in Fatehgunj circle", "location_name": "Fatehgunj", "lat": 22.3195, "lng": 73.1895 },
   { "delay_seconds": 9, "source": "call", "text": "ફતેહગંજ માં દુકાનોમાં પાણી ઘૂસી ગયા છે", "location_name": "Fatehgunj", "lat": 22.3190, "lng": 73.1890 },
   { "delay_seconds": 10, "source": "field", "text": "Fatehgunj circle blocked due to heavy flood", "location_name": "Fatehgunj", "lat": 22.3193, "lng": 73.1892 },
-  { "delay_seconds": 11, "source": "sensor", "text": "Water level 0.8m at Fatehgunj", "location_name": "Fatehgunj", "lat": 22.3193, "lng": 73.1892 },
+  { "delay_seconds": 11, "source": "sensor", "text": "water level 0.8m at Fatehgunj", "location_name": "Fatehgunj", "lat": 22.3193, "lng": 73.1892 },
 
-  { "delay_seconds": 13, "source": "citizen", "text": "Gotri pond overflowing into society", "location_name": "Gotri", "lat": 22.3168, "lng": 73.1491 },
-  { "delay_seconds": 14, "source": "call", "text": "ગોત્રી તળાવ ઓવરફ્લો થઈ રહ્યું છે", "location_name": "Gotri", "lat": 22.3170, "lng": 73.1495 },
-  { "delay_seconds": 15, "source": "citizen", "text": "Pani gotri lake se bahar aa raha hai", "location_name": "Gotri", "lat": 22.3165, "lng": 73.1488 },
-  { "delay_seconds": 16, "source": "field", "text": "Gotri lake embankment breached", "location_name": "Gotri", "lat": 22.3168, "lng": 73.1491 },
+  { "delay_seconds": 13, "source": "citizen", "text": "Gotri pond water overflowing into society", "location_name": "Gotri", "lat": 22.3168, "lng": 73.1491 },
+  { "delay_seconds": 14, "source": "call", "text": "ગોત્રી તળાવ ઓવરફ્લો થઈ રહ્યું છે, બધે પાણી છે", "location_name": "Gotri", "lat": 22.3170, "lng": 73.1495 },
+  { "delay_seconds": 15, "source": "citizen", "text": "paani gotri lake se bahar aa raha hai", "location_name": "Gotri", "lat": 22.3165, "lng": 73.1488 },
+  { "delay_seconds": 16, "source": "field", "text": "Gotri lake embankment breached, flood expected", "location_name": "Gotri", "lat": 22.3168, "lng": 73.1491 },
   
-  { "delay_seconds": 18, "source": "citizen", "text": "The sky is very dark today, looks like rain", "location_name": "Manjalpur", "lat": 22.2789, "lng": 73.1904 },
-  { "delay_seconds": 19, "source": "call", "text": "No flood here, just wanted to check if schools are closed", "location_name": "Karelibaug", "lat": 22.3255, "lng": 73.2033 }
+  { "delay_seconds": 18, "source": "citizen", "text": "Gotri area is facing severe waterlogging right now", "location_name": "Gotri", "lat": 22.3172, "lng": 73.1490 },
+  { "delay_seconds": 19, "source": "call", "text": "There is a massive flood in Gotri", "location_name": "Gotri", "lat": 22.3169, "lng": 73.1493 }
 ]
