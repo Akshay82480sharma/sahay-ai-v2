@@ -746,3 +746,226 @@ Notifications
 **Incident → AI analysis → suitable vehicle → Google real-road routing → primary + alternate routes → operator route selection → dispatch → real/simulated road-based vehicle movement → deviation detection → forward rejoin or safe rerouting → arrival → response → resolution → resource becomes available.**
 
 This keeps **Google Maps responsible for actual road routing and geometry**, while **Sahay remains responsible for emergency intelligence, resource selection, route preference, safety context, dispatch, simulation and resolution**.
+
+---
+
+# 18. Google Maps Routes API — Implementation
+
+Sahay uses the **modern Google Maps Routes REST API** (v2), not the legacy DirectionsService SDK.
+
+```text
+Frontend (LiveMap.jsx)
+        │
+        ▼
+fetch('https://routes.googleapis.com/directions/v2:computeRoutes')
+        │
+        ├── origin: { latLng: { latitude, longitude } }
+        ├── destination: { latLng: { latitude, longitude } }
+        ├── travelMode: 'DRIVE'
+        └── computeAlternativeRoutes: true
+        │
+        ▼
+Google returns:
+        │
+        ├── routes[0].polyline.encodedPolyline
+        ├── routes[0].distanceMeters
+        ├── routes[0].duration
+        ├── routes[1]...
+        └── routes[2]...
+        │
+        ▼
+geometryLib.encoding.decodePath(encodedPolyline)
+        │
+        ▼
+Array of { lat, lng } road coordinates
+```
+
+### Why REST instead of SDK?
+
+The legacy `new google.maps.DirectionsService()` was returning `REQUEST_DENIED` on the project's API key configuration. The REST endpoint provides identical data with more control over field masks and CORS handling.
+
+### Field Mask
+
+```text
+X-Goog-FieldMask: routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration
+```
+
+This minimises payload size and billing cost.
+
+---
+
+# 19. Route rendering — Custom Polyline
+
+The `@vis.gl/react-google-maps` library does not include a native `<Polyline>` component. We built a custom one:
+
+```text
+Polyline Component
+        │
+        ├── useMap() hook → gets map instance
+        ├── useRef() → persists google.maps.Polyline object
+        │
+        ├── On mount:
+        │   └── new google.maps.Polyline({ map })
+        │
+        ├── On path/options change:
+        │   └── polyline.setOptions({ path, strokeColor, ... })
+        │
+        └── On unmount:
+            └── polyline.setMap(null)
+```
+
+### Route styling rules
+
+```text
+Route State              │ Stroke Color │ Weight │ Opacity │ zIndex
+─────────────────────────┼──────────────┼────────┼─────────┼───────
+Active / Selected        │ #f59e0b      │ 7      │ 0.9     │ 10
+Alternate (not selected) │ #9ca3af      │ 4      │ 0.4     │ 1
+```
+
+### Why custom instead of DirectionsRenderer?
+
+React 18 strict mode calls `useEffect` cleanup twice on mount. The native `DirectionsRenderer` was silently destroying and recreating polylines, causing invisible routes. Our custom component creates the polyline once and only updates options on re-renders.
+
+---
+
+# 20. Physics-based vehicle simulation
+
+The vehicle doesn't just linearly interpolate between two GPS points. It uses an **easing curve** for realistic acceleration and deceleration.
+
+```text
+Route path = [P0, P1, P2, ... Pn]
+
+progress (0 → 1)
+        │
+        ▼
+Easing function: ease(t) = t < 0.5
+                           ? 2t²
+                           : 1 - (-2t + 2)² / 2
+        │
+        ▼
+Interpolated position along path segments
+        │
+        ▼
+Vehicle marker position + heading rotation
+```
+
+### Speed calculation
+
+```text
+Derivative of easing curve
+        │
+        ▼
+Instantaneous velocity
+        │
+        ▼
+Mapped to realistic km/h range
+        │
+        ▼
+± 3 km/h random jitter
+        │
+        ▼
+Displayed on speedometer
+```
+
+This produces natural-feeling acceleration at the start, cruising in the middle, and deceleration near the destination.
+
+### Live telemetry output
+
+```text
+┌──────────────────────────────────┐
+│ DISPATCHED UNIT                  │
+│ ● EN ROUTE                      │
+│                                  │
+│ ETA             4 min            │
+│ Distance        3.2 km           │
+│ Speed           47 km/h          │
+│ Route           Primary          │
+│ Progress        ████████░░ 68%   │
+└──────────────────────────────────┘
+```
+
+---
+
+# 21. Mid-drive rerouting (Safe Forward Rejoin)
+
+When the operator triggers a simulation event:
+
+```text
+[ ROAD CLOSURE ] clicked
+        │
+        ▼
+Capture vehicle's CURRENT position
+(vehicleProgress.currentPosition)
+        │
+        ▼
+Set deviationOrigin = { lat, lng }
+        │
+        ▼
+Routes API called with:
+  origin = deviationOrigin (vehicle's exact road position)
+  destination = incident location
+        │
+        ▼
+New route geometry returned
+        │
+        ▼
+Old route cleared
+New route rendered as active
+Vehicle continues from current position
+```
+
+### Wrong Turn
+
+```text
+[ WRONG TURN ] clicked
+        │
+        ▼
+Perturb vehicle position by ~100m offset
+(simulates the vehicle being on a wrong road)
+        │
+        ▼
+Same rerouting pipeline as above
+```
+
+The vehicle never blindly U-turns. It always calculates a **forward path** from wherever it currently is.
+
+---
+
+# 22. Severity color system
+
+All UI components use a unified, severity-based color system tied directly to the backend's raw `severity` integer (1-5).
+
+```text
+Severity │ Color   │ Hex     │ Label
+─────────┼─────────┼─────────┼────────
+5        │ Red     │ #ef4444 │ Critical
+4        │ Orange  │ #f97316 │ High
+3        │ Yellow  │ #eab308 │ Medium
+1-2      │ Blue    │ #3b82f6 │ Low
+```
+
+### Where it applies
+
+```text
+Component            │ Uses severity for
+─────────────────────┼───────────────────────
+IncidentCard.jsx     │ Dot emoji + text color
+IncidentDrawer.jsx   │ Badge background + text
+LiveMap.jsx          │ Map pin fill color
+Dashboard.jsx legend │ Legend dot colors
+```
+
+### Why severity, not priority?
+
+The backend calculates `priority` (Critical/High/Medium/Low) using a complex formula that weighs severity, report count, and resource requirements. Early in a simulation with only 1 report per incident, **all incidents scored as "Medium" priority** regardless of severity.
+
+By tying the UI directly to the raw `severity` integer, the colors accurately reflect the danger level from the very first report.
+
+---
+
+## The complete Sahay concept
+
+**Incident → AI analysis → suitable vehicle → Google Routes REST API real-road routing → primary + alternate routes with visual differentiation → operator route selection → dispatch → physics-based simulated road movement with live telemetry → deviation detection → Safe Forward Rejoin or dynamic rerouting → arrival → response → resolution → resource becomes available → analytics.**
+
+This keeps **Google Maps responsible for actual road routing and geometry**, while **Sahay remains responsible for emergency intelligence, resource selection, route preference, safety context, dispatch, simulation and resolution**.
