@@ -11,7 +11,12 @@ export default function Simulation() {
     setStatus('Injecting synthetic telemetry payload...');
     
     try {
-      await fetch('http://localhost:8000/simulate/flood', { method: 'POST' });
+      await fetch('http://localhost:8000/simulate/flood', { 
+        method: 'POST',
+        headers: {
+          'admin-token': 'sahay_demo_2026'
+        }
+      });
       setStatus('Scenario running! 50 incidents injected.');
       setTimeout(() => setStatus(''), 5000);
     } catch (err) {
