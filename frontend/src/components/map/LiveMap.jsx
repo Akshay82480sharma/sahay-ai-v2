@@ -4,58 +4,93 @@ import { useIncidents } from '../../hooks/useIncidents';
 import { useLiveData } from '../../context/LiveDataProvider';
 
 // ── Directions Route (real roads) ──────────────────────────────
-const DirectionsRoute = ({ origin, destination, onRouteReady }) => {
+// Polyline component for vis.gl
+const Polyline = ({ path, options }) => {
   const map = useMap();
-  const routesLib = useMapsLibrary('routes');
-  const rendererRef = useRef(null);
+  const polylineRef = useRef(null);
+
+  useEffect(() => {
+    if (!map || !window.google || !window.google.maps) return;
+    if (!polylineRef.current) {
+      polylineRef.current = new window.google.maps.Polyline({ map });
+    }
+    polylineRef.current.setOptions({ path, ...options });
+  }, [map, path, options]);
+
+  useEffect(() => {
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+    };
+  }, []);
+
+  return null;
+};
+
+const DirectionsRoute = ({ origin, destination, onRoutesReady, selectedRouteIndex = 0 }) => {
+  const map = useMap();
+  const geometryLib = useMapsLibrary('geometry');
 
   const origKey = origin ? `${origin.lat},${origin.lng}` : '';
   const destKey = destination ? `${destination.lat},${destination.lng}` : '';
 
   useEffect(() => {
-    if (!map || !routesLib || !origin || !destination) return;
+    if (!map || !geometryLib || !origin || !destination) return;
 
-    const service = new routesLib.DirectionsService();
-    const renderer = new routesLib.DirectionsRenderer({
-      map,
-      suppressMarkers: true,
-      polylineOptions: {
-        strokeColor: '#f59e0b',
-        strokeOpacity: 0.85,
-        strokeWeight: 5,
-      },
-    });
-    rendererRef.current = renderer;
-
-    service.route(
-      {
-        origin,
-        destination,
-        travelMode: routesLib.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === 'OK') {
-          renderer.setDirections(result);
-          // Extract the path points for the vehicle animation
-          const path = result.routes[0].overview_path.map(p => ({
-            lat: p.lat(),
-            lng: p.lng(),
-          }));
-          const leg = result.routes[0].legs[0];
-          onRouteReady && onRouteReady({
-            path,
-            distance: leg.distance?.text || '',
-            duration: leg.duration?.text || '',
-          });
-        }
-      }
-    );
-
-    return () => {
-      renderer.setMap(null);
-      rendererRef.current = null;
+    const apiKey = 'AIzaSyAe7ZXaD5UCISdmth0v9u9oZnVQx2nu-Uc';
+    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes?key=' + apiKey;
+    
+    const requestBody = {
+      origin: { location: { latLng: { latitude: parseFloat(origin.lat), longitude: parseFloat(origin.lng) } } },
+      destination: { location: { latLng: { latitude: parseFloat(destination.lat), longitude: parseFloat(destination.lng) } } },
+      travelMode: 'DRIVE',
+      computeAlternativeRoutes: true
     };
-  }, [map, routesLib, origKey, destKey]);
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': 'routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration'
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.routes && data.routes.length > 0) {
+        const routeOptions = data.routes.map((route, idx) => {
+          // Decode polyline
+          const decodedPath = geometryLib.encoding.decodePath(route.polyline.encodedPolyline);
+          const path = decodedPath.map(p => ({ lat: p.lat(), lng: p.lng() }));
+          
+          return {
+            index: idx,
+            summary: idx === 0 ? 'Primary Route' : `Alternate ${idx}`,
+            distance: `${(route.distanceMeters / 1000).toFixed(1)} km`,
+            duration: `${Math.ceil(parseInt(route.duration) / 60)} min`,
+            path: path,
+          };
+        });
+        if (onRoutesReady) onRoutesReady(routeOptions);
+      } else {
+        throw new Error("No routes found");
+      }
+    })
+    .catch(err => {
+      console.error("Routes API error:", err);
+      // Fallback
+      if (onRoutesReady) onRoutesReady([{
+        index: 0,
+        summary: "Direct Route (Fallback)",
+        distance: "Unknown",
+        duration: "Unknown",
+        path: [origin, destination]
+      }]);
+    });
+
+  }, [map, geometryLib, origKey, destKey, onRoutesReady]);
 
   return null;
 };
@@ -124,11 +159,18 @@ const VehicleMarker = ({ routePath, onProgress }) => {
       // Report progress to parent for live ETA updates
       const remainingDist = totalDistance - targetDist;
       const remainingTime = Math.max(0, Math.round((DURATION_MS - elapsed) / 1000));
+      let speedKmh = 55;
+      if (progress < 0.1) speedKmh = Math.max(10, Math.floor(55 * (progress / 0.1)));
+      else if (progress > 0.9) speedKmh = Math.max(0, Math.floor(55 * ((1 - progress) / 0.1)));
+      speedKmh += Math.floor(Math.random() * 7) - 3; // Jitter
+      if (speedKmh < 0 || progress >= 1) speedKmh = 0;
+
       onProgress && onProgress({
         progress,
         remainingDistance: remainingDist,
         remainingTime,
         currentPosition: { lat, lng },
+        speed: speedKmh
       });
 
       if (progress < 1) {
@@ -172,11 +214,10 @@ function getDistance(a, b) {
 }
 
 // ── Incident color helper ──────────────────────────────────────
-const getIncidentColor = (priority) => {
-  if (priority === 'critical') return '#ef4444';
-  if (priority === 'high') return '#f97316';
-  if (priority === 'medium') return '#eab308';
-  return '#3b82f6';
+const getIncidentColor = (severity) => {
+  return severity >= 5 ? '#ef4444' : 
+         severity === 4 ? '#f97316' : 
+         severity === 3 ? '#eab308' : '#3b82f6';
 };
 
 // ── Flood Zone Circles ─────────────────────────────────────────
@@ -208,14 +249,13 @@ const FloodCircles = ({ zones }) => {
 // ══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════
-export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter = 'All' }) {
+export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter = 'All', selectedRouteIndex = 0, onRouteOptionsReady, onVehicleProgress, deviationOrigin, vehicleProgress }) {
   const { incidents } = useIncidents();
   const { resources = [], globalSettings = {} } = useLiveData();
   const darkMode = globalSettings.darkMode ?? true;
-  const [routeInfo, setRouteInfo] = useState(null);
-  const [routePath, setRoutePath] = useState(null);
-  const [vehicleProgress, setVehicleProgress] = useState(null);
-  const [selectedPOI, setSelectedPOI] = useState(null);
+  const satellite = globalSettings.satellite ?? false;
+  const [routeOptions, setRouteOptions] = useState([]);
+    const [selectedPOI, setSelectedPOI] = useState(null);
 
   const defaultCenter = { lat: 22.3072, lng: 73.1812 };
 
@@ -257,22 +297,23 @@ export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter 
       }
     });
     return {
-      origin: { lat: closest.lat, lng: closest.lng },
+      origin: deviationOrigin || { lat: closest.lat, lng: closest.lng },
       destination: { lat: selectedIncident.lat, lng: selectedIncident.lng },
     };
-  }, [selectedIncident, resources]);
+  }, [selectedIncident, resources, deviationOrigin]);
 
   useEffect(() => {
     if (!selectedIncident) {
-      setRouteInfo(null);
-      setRoutePath(null);
+      setRouteOptions([]);
     }
   }, [selectedIncident]);
 
-  const handleRouteReady = useCallback((info) => {
-    setRouteInfo(info);
-    setRoutePath(info.path);
-  }, []);
+  const handleRoutesReady = useCallback((options) => {
+    setRouteOptions(options);
+    if (onRouteOptionsReady) {
+      onRouteOptionsReady(options);
+    }
+  }, [onRouteOptionsReady]);
 
   // ── Filter flags ─────────────────────────────────────────────
   const showIncidents = (globalSettings.showIncidents ?? true) && (mapFilter === 'All' || mapFilter === 'Incidents');
@@ -300,11 +341,13 @@ export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter 
     <div className="w-full h-full relative z-0">
       <APIProvider apiKey={apiKey}>
         <Map
+          mapTypeId={satellite ? 'hybrid' : 'roadmap'}
+          tilt={satellite ? 45 : 0}
           defaultCenter={defaultCenter}
           defaultZoom={13}
           disableDefaultUI={true}
           gestureHandling="greedy"
-          styles={darkMode ? [
+          styles={satellite ? [] : darkMode ? [
             { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
             { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
@@ -329,7 +372,7 @@ export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter 
           {/* ── Incident Markers ── */}
           {showIncidents && incidents?.map(inc => {
             const isSelected = selectedIncident && selectedIncident.id === inc.id;
-            const color = getIncidentColor(inc.priority);
+            const color = getIncidentColor(inc.severity);
             const scale = isSelected ? 34 : 28;
             const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="#1e1e1e" stroke-width="1.5" width="${scale}" height="${scale}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>`;
             return (
@@ -352,12 +395,30 @@ export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter 
             <DirectionsRoute
               origin={routeEndpoints.origin}
               destination={routeEndpoints.destination}
-              onRouteReady={handleRouteReady}
+              selectedRouteIndex={selectedRouteIndex}
+              onRoutesReady={handleRoutesReady}
             />
           )}
 
-          {/* ── Animated Vehicle Marker ── */}
-          {routePath && <VehicleMarker routePath={routePath} onProgress={setVehicleProgress} />}
+                    {/* Route Polylines */}
+          {routeOptions && routeOptions.map((route, index) => {
+            const isSelected = index === selectedRouteIndex;
+            return (
+              <Polyline
+                key={`route-${index}`}
+                path={route.path}
+                options={{
+                  strokeColor: isSelected ? '#f59e0b' : '#9ca3af',
+                  strokeOpacity: isSelected ? 0.9 : 0.4,
+                  strokeWeight: isSelected ? 6 : 4,
+                  zIndex: isSelected ? 10 : 1,
+                }}
+              />
+            );
+          })}
+
+          {/* Animated Vehicle Marker */}
+          {routeOptions[selectedRouteIndex]?.path && <VehicleMarker routePath={routeOptions[selectedRouteIndex].path} onProgress={onVehicleProgress} />}
 
           {/* ── Resource Markers ── */}
           {showResources && resources?.filter(res => res.type !== 'rescue_boat').map(res => {
@@ -447,43 +508,69 @@ export default function LiveMap({ onSelectIncident, selectedIncident, mapFilter 
       </APIProvider>
 
       {/* ── Live Route Info Badge ── */}
-      {routeInfo && (
-        <div className="absolute bottom-4 left-4 z-[500] bg-[#0A0E17]/95 backdrop-blur-md border border-[#1E2638] rounded-xl px-4 py-3 shadow-2xl font-mono text-xs min-w-[280px]">
-          <div className="flex items-center justify-between mb-2">
+      {routeOptions[selectedRouteIndex] && vehicleProgress && (
+        <div className="absolute bottom-4 left-4 z-[500] bg-[#0A0E17]/95 backdrop-blur-md border border-[#1E2638] rounded-xl shadow-2xl font-mono text-xs min-w-[300px] overflow-hidden">
+          
+          <div className="bg-[#1E2638]/50 px-4 py-2 border-b border-[#1E2638] flex justify-between items-center">
+            <span className="text-white font-bold text-sm">DISPATCHED UNIT</span>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-white font-bold">
-                {vehicleProgress && vehicleProgress.progress >= 1 ? 'ARRIVED' : 'EN ROUTE'}
+              <span className="text-emerald-400 font-bold tracking-wider uppercase">
+                {vehicleProgress.progress >= 1 ? 'Arrived' : 'En Route'}
               </span>
             </div>
-            <span className="text-brand-muted text-[10px]">{routeInfo.distance} total</span>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="w-full h-1.5 bg-[#1E2638] rounded-full mb-2 overflow-hidden">
-            <div 
-              className="h-full bg-emerald-500 rounded-full transition-all duration-300" 
-              style={{ width: `${vehicleProgress ? Math.round(vehicleProgress.progress * 100) : 0}%` }}
-            ></div>
           </div>
 
-          <div className="flex justify-between text-[11px]">
-            <div className="text-brand-muted">
-              Remaining: <span className="text-white">
-                {vehicleProgress 
-                  ? `${(vehicleProgress.remainingDistance / 1000).toFixed(1)} km`
-                  : routeInfo.distance}
-              </span>
+          <div className="p-4 flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <div className="text-brand-muted mb-0.5">ETA</div>
+                <div className="text-white font-bold text-sm">
+                  {vehicleProgress.progress >= 1 ? '0 min' : `${Math.ceil(vehicleProgress.remainingTime / 60)} min`}
+                </div>
+              </div>
+              <div>
+                <div className="text-brand-muted mb-0.5">Distance</div>
+                <div className="text-white font-bold text-sm">
+                  {(vehicleProgress.remainingDistance / 1000).toFixed(1)} km
+                </div>
+              </div>
+              <div>
+                <div className="text-brand-muted mb-0.5">Speed</div>
+                <div className="text-white font-bold text-sm text-blue-400">
+                  {vehicleProgress.progress >= 1 ? '0 km/h' : `${vehicleProgress.speed} km/h`}
+                </div>
+              </div>
+              <div>
+                <div className="text-brand-muted mb-0.5">Route</div>
+                <div className="text-white font-bold text-sm truncate">
+                  {selectedRouteIndex === 0 ? 'Primary' : `Alternate ${selectedRouteIndex}`}
+                </div>
+              </div>
             </div>
-            <div className="text-brand-muted">
-              ETA: <span className="text-emerald-400 font-bold">
-                {vehicleProgress
-                  ? vehicleProgress.progress >= 1 
-                    ? 'Arrived'
-                    : `${vehicleProgress.remainingTime}s`
-                  : routeInfo.duration}
-              </span>
+
+            <div className="w-full">
+               <div className="flex justify-between text-[10px] text-brand-muted mb-1">
+                 <span>Progress</span>
+                 <span>{Math.round(vehicleProgress.progress * 100)}%</span>
+               </div>
+               <div className="w-full h-2 bg-[#1E2638] rounded-full overflow-hidden">
+                 <div 
+                   className="h-full bg-emerald-500 rounded-full transition-all duration-300" 
+                   style={{ width: `${Math.round(vehicleProgress.progress * 100)}%` }}
+                 ></div>
+               </div>
             </div>
+
+            {vehicleProgress.progress < 1 && (
+              <div className="bg-[#1E2638]/30 rounded p-2 border border-[#1E2638]/50 mt-1">
+                <div className="text-[10px] text-brand-muted uppercase tracking-wider mb-1">Next Turn</div>
+                <div className="text-white flex items-center gap-2 text-sm">
+                  <span className="text-blue-400 font-sans text-xl leading-none">↰</span> 
+                  Follow route geometry
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

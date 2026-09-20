@@ -12,7 +12,7 @@ const getSeverityColor = (priority) => {
   }
 };
 
-export default function DispatchModal({ incident, onClose, onDispatchSuccess }) {
+export default function DispatchModal({ incident, onClose, onDispatchSuccess, routeOptions = [], selectedRouteIndex = 0, onSelectRouteIndex }) {
   const [isApproved, setIsApproved] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recommendations, setRecommendations] = useState([]);
@@ -141,6 +141,37 @@ export default function DispatchModal({ incident, onClose, onDispatchSuccess }) 
                   ))
                 ) : (
                   <div className="text-brand-muted p-2">No specific units recommended.</div>
+                )}
+              </div>
+
+
+              <hr className="border-brand-border" />
+              
+              <div className="px-2 py-1">
+                <div className="text-brand-muted uppercase text-xs mb-3 font-semibold tracking-wider">Response Routes</div>
+                {routeOptions.length > 0 ? routeOptions.map((route, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => onSelectRouteIndex && onSelectRouteIndex(i)}
+                    className={`flex items-start gap-3 p-3 rounded mb-2 cursor-pointer transition-colors ${selectedRouteIndex === i ? 'bg-[#1E2638] border border-blue-500/50' : 'bg-brand-panel hover:bg-[#1E2638]'}`}
+                  >
+                    <div className={`mt-0.5 rounded-full border flex items-center justify-center h-4 w-4 shrink-0 ${selectedRouteIndex === i ? 'border-blue-500 bg-blue-500 text-white' : 'border-gray-500'}`}>
+                      {selectedRouteIndex === i && <div className="h-2 w-2 bg-white rounded-full"></div>}
+                    </div>
+                    <div className="flex flex-col w-full">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-bold ${selectedRouteIndex === i ? 'text-white' : 'text-gray-400'}`}>
+                          {i === 0 ? '● RECOMMENDED' : `○ ALTERNATE ${i}`}
+                        </span>
+                        <span className="text-status-warning text-sm">{route.duration}</span>
+                      </div>
+                      <div className="text-xs text-brand-muted mt-1">
+                        {route.distance} • {route.summary}
+                      </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-brand-muted p-2 text-sm">Calculating routes...</div>
                 )}
               </div>
 

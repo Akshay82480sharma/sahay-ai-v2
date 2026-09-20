@@ -43,6 +43,7 @@ export function LiveDataProvider({ children }) {
     showIncidents: true,
     showResources: true,
     darkMode: true,
+    satellite: false,
     heatmap: false,
     autoAssign: true,
     aiRecs: true,

@@ -2,14 +2,11 @@ import React, { useState } from 'react';
 import { X, MapPin, Clock, Users, Activity, CheckCircle2, ChevronRight, Navigation } from 'lucide-react';
 import { timeAgo } from '../../utils/time';
 
-const getSeverityColor = (priority) => {
-  switch (priority?.toLowerCase()) {
-    case 'critical': return 'bg-red-500/10 text-red-500 border-red-500/20';
-    case 'high': return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
-    case 'medium': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-    case 'low': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-    default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-  }
+const getSeverityColor = (severity) => {
+  if (severity >= 5) return 'bg-red-500/10 text-red-500 border-red-500/20';
+  if (severity === 4) return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+  if (severity === 3) return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+  return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
 };
 
 const getRecommendedUnit = (type) => {
@@ -69,8 +66,8 @@ export default function IncidentDrawer({ incident, onClose, onReviewDispatch }) 
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h2 className="text-xl font-bold tracking-tight font-mono">{displayId}</h2>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getSeverityColor(incident.priority)}`}>
-              {incident.priority || 'Unknown'}
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase tracking-wider ${getSeverityColor(incident.severity)}`}>
+              {incident.severity >= 5 ? 'Critical' : incident.severity === 4 ? 'High' : incident.severity === 3 ? 'Medium' : 'Low'}
             </span>
           </div>
           <h3 className="text-lg font-semibold">{incident.type ? incident.type.charAt(0).toUpperCase() + incident.type.slice(1) : 'Unknown Type'}</h3>

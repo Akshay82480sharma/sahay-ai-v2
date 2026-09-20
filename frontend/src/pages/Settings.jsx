@@ -131,6 +131,7 @@ export default function Settings() {
                     { label: 'Show Incidents by Default', key: 'showIncidents' },
                     { label: 'Show Resources by Default', key: 'showResources' },
                     { label: 'Enable Dark Mode Tiles', key: 'darkMode' },
+                    { label: 'Enable 3D Satellite View', key: 'satellite' },
                     { label: 'Display Heatmap Overlay', key: 'heatmap' }
                   ].map((item, i) => (
                     <div key={i} className="flex justify-between items-center">

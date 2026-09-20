@@ -1,24 +1,18 @@
 import React from 'react';
 import { timeAgo } from '../../utils/time';
 
-const getSeverityColor = (priority) => {
-  switch (priority?.toLowerCase()) {
-    case 'critical': return 'text-status-critical';
-    case 'high': return 'text-status-high';
-    case 'medium': return 'text-status-warning';
-    case 'low': return 'text-status-info';
-    default: return 'text-brand-muted';
-  }
+const getSeverityColor = (severity) => {
+  if (severity >= 5) return 'text-status-critical';
+  if (severity === 4) return 'text-status-high';
+  if (severity === 3) return 'text-status-warning';
+  return 'text-status-info';
 };
 
-const getSeverityDot = (priority) => {
-  switch (priority?.toLowerCase()) {
-    case 'critical': return '🔴';
-    case 'high': return '🟠';
-    case 'medium': return '🟡';
-    case 'low': return '🔵';
-    default: return '⚪';
-  }
+const getSeverityDot = (severity) => {
+  if (severity >= 5) return '🔴';
+  if (severity === 4) return '🟠';
+  if (severity === 3) return '🟡';
+  return '🔵';
 };
 
 export default function IncidentCard({ incident, onClick }) {
@@ -29,8 +23,8 @@ export default function IncidentCard({ incident, onClick }) {
     >
       <div className="flex justify-between items-center text-sm font-mono tracking-wide">
         <div className="flex items-center gap-2">
-          <span>{getSeverityDot(incident.priority)}</span>
-          <span className={getSeverityColor(incident.priority)}>
+          <span>{getSeverityDot(incident.severity)}</span>
+          <span className={getSeverityColor(incident.severity)}>
             #{incident.id.toString().padStart(4, '0')}
           </span>
         </div>
